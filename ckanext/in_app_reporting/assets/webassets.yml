@@ -1,0 +1,23 @@
+dashboard-form-js:
+  filter: rjsmin
+  output: ckanext-in_app_reporting/%(version)s-dashboard-form.js
+  contents:
+    - js/dashboard_form.js
+  extra:
+    preload:
+      - base/main
+
+card-form-js:
+  filter: rjsmin
+  output: ckanext-in_app_reporting/%(version)s-card-form.js
+  contents:
+    - js/card_form.js
+  extra:
+    preload:
+      - base/main
+
+reporting-css:
+  filter: cssrewrite
+  output: ckanext-in_app_reporting/%(version)s-reporting.css
+  contents:
+    - css/in_app_reporting.css

@@ -1,0 +1,15 @@
+{% set entity_id = resource_view.get('entity_id') %}
+{% set bordered = resource_view.get('bordered') %}
+{% set titled = resource_view.get('titled') %}
+{% set downloads = resource_view.get('downloads') %}
+
+{% if entity_id %}
+    {% set iframeUrl = h.get_metabase_iframe_url('question', entity_id, bordered, titled, false) %}
+    <iframe
+        src="{{iframeUrl}}"
+        frameborder="0"
+        width="100%"
+        height="650px"
+        allowtransparency
+    ></iframe>
+{% endif %}

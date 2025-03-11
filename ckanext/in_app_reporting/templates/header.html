@@ -1,0 +1,12 @@
+{% ckan_extends %}
+
+{% block header_account_logged %}
+  {% if g.userobj.sysadmin and h.is_metabase_sso_user(g.userobj) %}
+    <li>
+      <a href="{{ h.url_for('metabase.metabase_embed') }}" title="{{ _('Reporting') }}">
+        <i class="fa fa-bar-chart"></i>
+      </a>
+    </li>
+  {% endif %}
+  {{ super() }}
+{% endblock %}
