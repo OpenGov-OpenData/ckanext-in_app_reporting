@@ -1,10 +1,17 @@
 {% extends 'page.html' %}
 
 {% if return_to %}
-  {% set sso_url = '/sso/metabase?return_to='+return_to %}
+  {% set sso_url = site_url+'/sso/metabase?return_to='+return_to %}
 {% else %}
-  {% set sso_url = '/sso/metabase' %}
+  {% set sso_url = site_url+'/sso/metabase' %}
 {% endif %}
+
+{% block meta %}
+  {{ super() }}
+  {% if sso_url.startswith('https://') %}
+    <meta http-equiv="Content-Security-Policy" content="upgrade-insecure-requests">
+  {% endif %}
+{% endblock %}
 
 {%- block custom_styles %}
   {{ super() }}

@@ -1,4 +1,4 @@
-from flask import Blueprint, redirect, request
+from flask import Blueprint, request
 from flask.views import MethodView
 from urllib.parse import urlencode, urljoin
 
@@ -29,7 +29,8 @@ class MetabaseView(MethodView):
         return tk.render(
             u'metabase/metabase.html',
             extra_vars={
-                'return_to': return_to
+                'return_to': return_to,
+                'site_url': tk.config.get('ckan.site_url')
             }
         )
 
@@ -48,7 +49,7 @@ class MetabaseView(MethodView):
             return_to = request.args.get("return_to", "/")
             query_params = urlencode({"jwt": jwt_token, "return_to": return_to})
             redirect_url = f"{sso_url}?{query_params}"
-            return redirect(redirect_url)
+            return tk.redirect_to(redirect_url)
         except tk.NotAuthorized:
             tk.abort(404, tk._(u'Resource not found'))
 
