@@ -48,3 +48,8 @@ def metabase_publish_dashboard(context, data_dict):
         }
     else:
         return {'success': True}
+
+
+def metabase_create_model(context, data_dict):
+    # Only sysadmins can access this
+    return {'success': False}

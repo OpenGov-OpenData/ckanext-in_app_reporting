@@ -31,7 +31,8 @@ class InAppReportingPlugin(plugins.SingletonPlugin):
     def get_actions(self):
         return {
             'metabase_publish_card': action.metabase_publish_card,
-            'metabase_publish_dashboard': action.metabase_publish_dashboard
+            'metabase_publish_dashboard': action.metabase_publish_dashboard,
+            'metabase_create_model': action.metabase_create_model
         }
 
     # IAuthFunctions
@@ -41,7 +42,8 @@ class InAppReportingPlugin(plugins.SingletonPlugin):
             'metabase_sso': auth.metabase_sso,
             'metabase_data': auth.metabase_data,
             'metabase_publish_card': auth.metabase_publish_card,
-            'metabase_publish_dashboard': auth.metabase_publish_dashboard
+            'metabase_publish_dashboard': auth.metabase_publish_dashboard,
+            'metabase_create_model': auth.metabase_create_model
         }
 
     # IBlueprint
@@ -55,7 +57,7 @@ class InAppReportingPlugin(plugins.SingletonPlugin):
             'is_metabase_sso_user': utils.is_metabase_sso_user,
             'get_metabase_embeddable': utils.get_metabase_embeddable,
             'get_metabase_table_id': utils.get_metabase_table_id,
-            'get_metabase_cards_by_table_id': utils.get_metabase_cards_by_table_id,
+            'get_metabase_cards_by_table_id': utils.get_metabase_cards_by_table_id
         }
 
 

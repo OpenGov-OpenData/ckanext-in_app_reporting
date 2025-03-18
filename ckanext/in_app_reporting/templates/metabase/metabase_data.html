@@ -5,11 +5,15 @@
 {% block primary_content_inner %}
 {% set table_id = h.get_metabase_table_id(res.id) %}
 <p>
-  <b>CKAN Table ID:</b> {{ res.id }}
+  <b>Datastore Table ID:</b> {{ res.id }}
 </p>
 <p>
   {% if table_id %}
     <b>Metabase Table ID:</b> {{ table_id }}
+  {% else %}
+    <form id="create-model" class="form-horizontal" method="post">
+      <input id="create" name="create" value="Create Model" type="submit" class="btn btn-primary">
+    </form>
   {% endif %}
 </p>
 {% if table_id %}
@@ -24,7 +28,7 @@
     <tbody>
     {% for card in h.get_metabase_cards_by_table_id(table_id) %}
       <tr>
-        <td><a href="/reporting?return_to=/{{card['type']}}/{{card['id']}}" >{{ card['name'] }}</a></td>
+        <td><a href="/reporting?return_to=/{{card['type']}}/{{card['id']}}">{{ card['name'] }}</a></td>
         <td>{{ card['type'] }}</td>
         <td>{{ card['updated_at'] }}</td>
       </tr>

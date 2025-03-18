@@ -1,3 +1,4 @@
+import json
 import jwt
 import re
 import requests
@@ -33,6 +34,22 @@ def metabase_get_request(url):
         response = requests.get(url, headers=headers)
         if response.status_code == 200:
             return response.json()
+    except Exception:
+        return None
+
+
+def metabase_post_request(url, data_dict):
+    headers = {
+        'x-api-key': METABASE_API_KEY,
+        'Content-Type': 'application/json'
+    }
+    try:
+        response = requests.post(
+            url,
+            headers=headers,
+            data=json.dumps(data_dict)
+        )
+        return response.json()
     except Exception:
         return None
 

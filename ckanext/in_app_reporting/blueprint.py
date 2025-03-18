@@ -70,6 +70,17 @@ class MetabaseView(MethodView):
             resource = tk.get_action('resource_show')(None, {'id': resource_id})
         except (tk.ObjectNotFound, tk.NotAuthorized):
             return tk.abort(404, tk._('Resource not found'))
+
+        if request.method == 'POST':
+            redirect_url = tk.url_for('metabase.metabase_data', id=id, resource_id=resource_id)
+            model_result = tk.get_action('metabase_create_model')({'ignore_auth': True}, {
+                'resource_id': '0a4826f2-4b2b-4855-a50e-6c475bbbcd01',
+                'model_name': resource.get('name') or resource_id
+            })
+            if not model_result.get('success'):
+                tk.h.flash_error(tk._('Failed to create model.'))
+            return tk.redirect_to(redirect_url)
+
         extra_vars = {
             'pkg_dict': pkg_dict,
             'resource': resource
