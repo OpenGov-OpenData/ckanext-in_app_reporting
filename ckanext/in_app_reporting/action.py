@@ -10,8 +10,8 @@ METABASE_DB_ID = mb_config.metabase_db_id()
 collection_ids = mb_config.collection_ids()
 
 
-def metabase_publish_card(context, data_dict):
-    tk.check_access('metabase_publish_card', context, data_dict)
+def metabase_card_publish(context, data_dict):
+    tk.check_access('metabase_card_publish', context, data_dict)
 
     card_id = data_dict.get('id')
     if not card_id:
@@ -34,8 +34,8 @@ def metabase_publish_card(context, data_dict):
         raise tk.ValidationError({'error': 'Failed to publish card'})
 
 
-def metabase_publish_dashboard(context, data_dict):
-    tk.check_access('metabase_publish_dashboard', context, data_dict)
+def metabase_dashboard_publish(context, data_dict):
+    tk.check_access('metabase_dashboard_publish', context, data_dict)
 
     dashboard_id = data_dict.get('id')
     if not dashboard_id:
@@ -68,15 +68,20 @@ def metabase_publish_dashboard(context, data_dict):
         raise tk.ValidationError({'error': 'Failed to publish dashboard'})
 
 
-def metabase_create_model(context, data_dict):
-    tk.check_access('metabase_create_model', context, data_dict)
+def metabase_model_create(context, data_dict):
+    tk.check_access('metabase_model_create', context, data_dict)
 
     resource_id = data_dict.get('resource_id')
-    if not resource_id:
-        raise tk.ValidationError({'resource_id': 'Resource ID Required'})
-    model_name = data_dict.get('model_name')
-    if not model_name:
-        raise tk.ValidationError({'model_name': 'Model Name Required'})
+    if not resource_id or not isinstance(resource_id, str):
+        raise tk.ValidationError({'resource_id': 'Resource ID required'})
+    model_name = data_dict.get('name')
+    if not model_name or not isinstance(resource_id, str):
+        raise tk.ValidationError({'name': 'Model name required'})
+
+    try:
+        resource = tk.get_action('resource_show')(None, {'id': resource_id})
+    except (tk.ObjectNotFound, tk.NotAuthorized):
+        raise tk.ValidationError({'error': 'Resource not found'})
 
     search_results = utils.metabase_get_request(
         f'{METABASE_SITE_URL}/api/search/?q={resource_id}&table_db_id={METABASE_DB_ID}&model=table')
@@ -104,7 +109,7 @@ def metabase_create_model(context, data_dict):
                     }
                 ]
             )
-    data_dict = {
+    model_dict = {
         "name": model_name,
         "dataset_query": {
             "database": int(METABASE_DB_ID),
@@ -120,8 +125,10 @@ def metabase_create_model(context, data_dict):
         "collection_id": int(collection_ids[0]),
         "type": "model"
     }
+    if data_dict.get('description') and isinstance(data_dict.get('description'), str):
+        model_dict['description'] = data_dict.get('description')
     response = utils.metabase_post_request(
-        f'{METABASE_SITE_URL}/api/card', data_dict)
+        f'{METABASE_SITE_URL}/api/card', model_dict)
     if response:
         return {'success': True, 'result': response}
     else:

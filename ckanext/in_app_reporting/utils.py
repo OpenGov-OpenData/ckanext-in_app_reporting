@@ -117,6 +117,8 @@ def get_metabase_table_id(table_name):
 def get_metabase_cards_by_table_id(table_id):
     matching_cards = []
     card_results = metabase_get_request(f'{METABASE_SITE_URL}/api/card?f=table&model_id={table_id}')
+    if not card_results:
+        return matching_cards
     for card in card_results:
         if str(card.get('collection_id')) in collection_ids:
             matching_cards.append({

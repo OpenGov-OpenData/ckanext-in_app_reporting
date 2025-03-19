@@ -77,7 +77,7 @@ $(document).ready(function () {
             event.preventDefault();
             $.ajax({
                 method: 'POST',
-                url: '/api/action/metabase_publish_dashboard',
+                url: '/api/action/metabase_dashboard_publish',
                 data: JSON.stringify({ 'id': dashboardId, 'enable_params': true }),
                 contentType: 'application/json',
                 success: function (response) {

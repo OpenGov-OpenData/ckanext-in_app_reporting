@@ -77,7 +77,7 @@ $(document).ready(function () {
             event.preventDefault();
             $.ajax({
                 method: 'POST',
-                url: '/api/action/metabase_publish_card',
+                url: '/api/action/metabase_card_publish',
                 data: JSON.stringify({ 'id': cardId }),
                 contentType: 'application/json',
                 success: function (response) {

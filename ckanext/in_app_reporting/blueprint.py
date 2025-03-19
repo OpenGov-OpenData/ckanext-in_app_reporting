@@ -73,13 +73,21 @@ class MetabaseView(MethodView):
 
         if request.method == 'POST':
             redirect_url = tk.url_for('metabase.metabase_data', id=id, resource_id=resource_id)
-            model_result = tk.get_action('metabase_create_model')({'ignore_auth': True}, {
-                'resource_id': '0a4826f2-4b2b-4855-a50e-6c475bbbcd01',
-                'model_name': resource.get('name') or resource_id
-            })
-            if not model_result.get('success'):
-                tk.h.flash_error(tk._('Failed to create model.'))
-            return tk.redirect_to(redirect_url)
+            try:
+                resource_name = resource.get('name') or resource.get('id')
+                model_name = '%s - %s' % (pkg_dict.get('title'), resource_name)
+                model_dict = {
+                    'resource_id': resource_id,
+                    'name': model_name
+                }
+                if resource.get('description'):
+                    model_dict['description'] = resource.get('description')
+                model_result = tk.get_action('metabase_model_create')({'ignore_auth': True}, model_dict)
+                if not model_result.get('success'):
+                    tk.h.flash_error(tk._('Failed to create model'))
+                return tk.redirect_to(redirect_url)
+            except Exception as err:
+                tk.h.flash_error('Failed to create model')
 
         extra_vars = {
             'pkg_dict': pkg_dict,
