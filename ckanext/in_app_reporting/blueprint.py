@@ -47,7 +47,11 @@ class MetabaseView(MethodView):
             jwt_token = utils.get_metabase_user_token(tk.g.userobj)
             sso_url = urljoin(METABASE_SITE_URL, "/auth/sso")
             return_to = request.args.get("return_to", "/")
-            query_params = urlencode({"jwt": jwt_token, "return_to": return_to})
+            return_to_with_ui_flags = f"{return_to}?top_nav=true&search=true&new_button=true&entity_type=model"
+            query_params = urlencode({
+                "jwt": jwt_token,
+                "return_to": return_to_with_ui_flags
+            })
             redirect_url = f"{sso_url}?{query_params}"
             return tk.redirect_to(redirect_url)
         except tk.NotAuthorized:
