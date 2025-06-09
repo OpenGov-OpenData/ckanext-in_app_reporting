@@ -3,6 +3,26 @@ import ckan.plugins.toolkit as tk
 import ckanext.in_app_reporting.utils as utils
 
 
+def metabase_mapping_create(context, data_dict):
+    # Only sysadmins can access this
+    return {'success': False}
+
+
+def metabase_mapping_update(context, data_dict):
+    # Only sysadmins can access this
+    return {'success': False}
+
+
+def metabase_mapping_delete(context, data_dict):
+    # Only sysadmins can access this
+    return {'success': False}
+
+
+def metabase_mapping_show(context, data_dict):
+    # Only sysadmins can access this
+    return {'success': False}
+
+
 def metabase_embed(context, data_dict):
     # Only sysadmins can access this
     return {'success': False}

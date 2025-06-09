@@ -1,10 +1,15 @@
+import datetime
 import json
 import jwt
 import re
 import requests
 import time
+import uuid
 import ckan.model as model
+import ckan.plugins.toolkit as tk
 import ckanext.in_app_reporting.config as mb_config
+from ckanext.in_app_reporting.model import MetabaseMapping
+from ckanext.opengov.auth.db import UserToken
 
 
 METABASE_SITE_URL = mb_config.metabase_site_url()
@@ -12,8 +17,6 @@ METABASE_EMBEDDING_SECRET_KEY = mb_config.metabase_embedding_secret_key()
 METABASE_JWT_SHARED_SECRET = mb_config.metabase_jwt_shared_secret()
 METABASE_API_KEY = mb_config.metabase_api_key()
 METABASE_DB_ID = mb_config.metabase_db_id()
-collection_ids = mb_config.collection_ids()
-group_ids = mb_config.group_ids()
 
 
 def is_metabase_sso_user(userobj):
@@ -73,11 +76,12 @@ def get_metabase_iframe_url(model_type, entity_id, bordered, titled, downloads):
 
 
 def get_metabase_user_token(userobj):
+    metabase_mapping = tk.get_action('metabase_mapping_show')({}, {'user_id': userobj.id})
     payload = {
         "email": userobj.name,
-        "exp": round(time.time()) + (60 * 10) # 10 minute expiration
+        "exp": round(time.time()) + (60 * 10),  # 10 minute expiration
+        "groups": metabase_mapping["group_ids"]
     }
-    payload["groups"] = group_ids
     fullname = userobj.fullname
     if fullname and len(fullname.split(' ')) >= 2:
         first_name = fullname.split(' ')[0]
@@ -115,12 +119,14 @@ def get_metabase_table_id(table_name):
 
 
 def get_metabase_cards_by_table_id(table_id):
+    userobj = tk.g.userobj
+    metabase_mapping = tk.get_action('metabase_mapping_show')({}, {'user_id': userobj.id})
     matching_cards = []
     card_results = metabase_get_request(f'{METABASE_SITE_URL}/api/card?f=table&model_id={table_id}')
     if not card_results:
         return matching_cards
     for card in card_results:
-        if str(card.get('collection_id')) in collection_ids:
+        if str(card.get('collection_id')) in metabase_mapping['collection_ids']:
             matching_cards.append({
                 'id': card.get('id'),
                 'name': card.get('name'),
@@ -132,11 +138,13 @@ def get_metabase_cards_by_table_id(table_id):
 
 
 def get_metabase_collection_items(model_type):
+    userobj = tk.g.userobj
+    metabase_mapping = tk.get_action('metabase_mapping_show')({}, {'user_id': userobj.id})
     collection_items = []
     if model_type not in ['dashboard', 'card']:
         return collection_items
     # Get items of specific model type from specific collections
-    for collection_id in collection_ids:
+    for collection_id in metabase_mapping['collection_ids']:
         collection_results = metabase_get_request(
             f'{METABASE_SITE_URL}/api/collection/{collection_id}/items?models={model_type}')
         if not collection_results:
@@ -145,3 +153,135 @@ def get_metabase_collection_items(model_type):
             item['text'] = item.get('name', '')
             collection_items.append(item)
     return collection_items
+
+
+def metabase_mapping_create(data_dict):
+    user_id = data_dict.get('user_id')
+    if not user_id:
+        raise tk.ValidationError({'user_id': 'User ID is required'})
+
+    user = model.User.get(user_id)
+    if not user:
+        raise tk.ValidationError({'User ID': f'User with ID {user_id} not found'})
+
+    # Check if already exists
+    existing = MetabaseMapping.get(user_id=user_id)
+    if existing:
+        raise tk.ValidationError({'user_id': 'Mapping already exists. Use update instead.'})
+
+    if data_dict.get('platform_uuid'):
+        try:
+            uuid.UUID(data_dict.get('platform_uuid'))
+            platform_uuid = data_dict.get('platform_uuid')
+        except ValueError:
+            raise tk.ValidationError({'platform_uuid': 'OpenGov User UUID must be a valid UUID string'})
+    else:
+        try:
+            user_token = model.Session.query(UserToken).filter_by(user_name=user.email).first()
+            if user_token:
+                platform_uuid = user_token.platform_uuid
+        except Exception as e:
+            raise tk.ValidationError({'platform_uuid': 'OpenGov User UUID not found'})
+
+    group_ids = data_dict.get('group_ids', [])
+    if not isinstance(group_ids, list):
+        raise tk.ValidationError({'group_ids': 'Group IDs must be a list'})
+    if not all(isinstance(item, str) for item in group_ids):
+        raise tk.ValidationError({'group_ids': 'All group IDs must be strings'})
+
+    collection_ids = data_dict.get('collection_ids', [])
+    if not isinstance(collection_ids, list):
+        raise tk.ValidationError({'collection_ids': 'Collection IDs must be a list'})
+    if not all(isinstance(item, str) for item in collection_ids):
+        raise tk.ValidationError({'collection_ids': 'All collection IDs must be strings'})
+
+    group_ids_str = ';'.join(group_ids)
+    collection_ids_str = ';'.join(collection_ids)
+
+    mapping = MetabaseMapping(
+        user_id=user_id,
+        platform_uuid=platform_uuid,
+        email=user.email,
+        group_ids=group_ids_str,
+        collection_ids=collection_ids_str,
+        created=datetime.datetime.utcnow(),
+        modified=datetime.datetime.utcnow()
+    )
+
+    model.Session.add(mapping)
+    model.Session.commit()
+
+    return {
+        "user_id": user_id,
+        "platform_uuid": mapping.platform_uuid,
+        "email": mapping.email,
+        "group_ids": group_ids,
+        "collection_ids": collection_ids,
+        "created": mapping.created.isoformat(),
+        "modified": mapping.modified.isoformat()
+    }
+
+
+def metabase_mapping_update(data_dict):
+    user_id = data_dict.get('user_id')
+    if not user_id:
+        raise tk.ValidationError({'user_id': 'User ID is required'})
+
+    user = model.User.get(user_id)
+    if not user:
+        raise tk.ValidationError({'User ID': f'User with ID {user_id} does not exist'})
+
+    mapping = MetabaseMapping.get(user_id=user_id)
+    if not mapping:
+        raise tk.ObjectNotFound(f'No mapping found for user_id={user_id}')
+
+    if data_dict.get('platform_uuid'):
+        try:
+            uuid.UUID(data_dict.get('platform_uuid'))
+            mapping.platform_uuid = data_dict.get('platform_uuid')
+        except ValueError:
+            raise tk.ValidationError({'platform_uuid': 'OpenGov User UUID must be a valid UUID string'})
+
+    group_ids = data_dict.get('group_ids', mapping.group_ids or [])
+    if not isinstance(group_ids, list):
+        raise tk.ValidationError({'group_ids': 'Group IDs must be a list'})
+    if not all(isinstance(item, str) for item in group_ids):
+        raise tk.ValidationError({'group_ids': 'All group IDs must be strings'})
+
+    collection_ids = data_dict.get('collection_ids', mapping.collection_ids or [])
+    if not isinstance(collection_ids, list):
+        raise tk.ValidationError({'collection_ids': 'Collection IDs must be a list'})
+    if not all(isinstance(item, str) for item in collection_ids):
+        raise tk.ValidationError({'collection_ids': 'All collection IDs must be strings'})
+
+    mapping.email = user.email
+    mapping.group_ids = ';'.join(group_ids)
+    mapping.collection_ids = ';'.join(collection_ids)
+    mapping.modified = datetime.datetime.utcnow()
+
+    model.Session.commit()
+
+    return {
+        "user_id": user_id,
+        "platform_uuid": mapping.platform_uuid,
+        "email": mapping.email,
+        "group_ids": [g.strip() for g in mapping.group_ids.split(';')],
+        "collection_ids": [c.strip() for c in mapping.collection_ids.split(';')],
+        "created": mapping.created.isoformat(),
+        "modified": mapping.modified.isoformat()
+    }
+
+
+def metabase_mapping_delete(data_dict):
+    user_id = data_dict.get('user_id')
+    if not user_id:
+        raise tk.ValidationError({'user_id': 'User ID is required'})
+
+    mapping = MetabaseMapping.get(user_id=user_id)
+    if not mapping:
+        raise tk.ObjectNotFound(f'No mapping found for user_id {user_id}')
+
+    model.Session.delete(mapping)
+    model.Session.commit()
+
+    return {'message': f'Mapping for user_id {user_id} deleted successfully.'}

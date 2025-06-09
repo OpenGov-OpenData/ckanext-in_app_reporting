@@ -3,6 +3,7 @@ import ckan.plugins.toolkit as toolkit
 import ckan.lib.navl.dictization_functions as df
 import ckanext.in_app_reporting.action as action
 import ckanext.in_app_reporting.auth as auth
+import ckanext.in_app_reporting.cli as cli
 import ckanext.in_app_reporting.utils as utils
 import ckanext.in_app_reporting.blueprint as view
 
@@ -15,11 +16,16 @@ missing = df.missing
 
 
 class InAppReportingPlugin(plugins.SingletonPlugin):
-    plugins.implements(plugins.IConfigurer)
+    plugins.implements(plugins.IClick)
+    plugins.implements(plugins.IConfigurer, inherit=True)
     plugins.implements(plugins.IActions)
     plugins.implements(plugins.IAuthFunctions)
     plugins.implements(plugins.IBlueprint)
     plugins.implements(plugins.ITemplateHelpers, inherit=True)
+
+    # IClick
+    def get_commands(self):
+        return cli.get_commands()
 
     # IConfigurer
     def update_config(self, config_):
@@ -30,6 +36,10 @@ class InAppReportingPlugin(plugins.SingletonPlugin):
     # IActions
     def get_actions(self):
         return {
+            'metabase_mapping_create': action.metabase_mapping_create,
+            'metabase_mapping_update': action.metabase_mapping_update,
+            'metabase_mapping_delete': action.metabase_mapping_delete,
+            'metabase_mapping_show': action.metabase_mapping_show,
             'metabase_card_publish': action.metabase_card_publish,
             'metabase_dashboard_publish': action.metabase_dashboard_publish,
             'metabase_model_create': action.metabase_model_create
@@ -38,6 +48,10 @@ class InAppReportingPlugin(plugins.SingletonPlugin):
     # IAuthFunctions
     def get_auth_functions(self):
         return {
+            'metabase_mapping_create': auth.metabase_mapping_create,
+            'metabase_mapping_update': auth.metabase_mapping_update,
+            'metabase_mapping_delete': auth.metabase_mapping_delete,
+            'metabase_mapping_show': auth.metabase_mapping_show,
             'metabase_embed': auth.metabase_embed,
             'metabase_sso': auth.metabase_sso,
             'metabase_data': auth.metabase_data,

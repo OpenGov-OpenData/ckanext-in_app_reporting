@@ -1,13 +1,76 @@
+import datetime
 import requests
+import ckan.model as model
 import ckan.plugins.toolkit as tk
 import ckanext.in_app_reporting.config as mb_config
 import ckanext.in_app_reporting.utils as utils
+from ckanext.in_app_reporting.model import MetabaseMapping
 
 
 METABASE_SITE_URL = mb_config.metabase_site_url()
 METABASE_API_KEY = mb_config.metabase_api_key()
 METABASE_DB_ID = mb_config.metabase_db_id()
 collection_ids = mb_config.collection_ids()
+
+
+def metabase_mapping_create(context, data_dict):
+    tk.check_access('metabase_mapping_create', context, data_dict)
+    try:
+        create_response = utils.metabase_mapping_create(data_dict)
+        return create_response
+    except Exception as e:
+        raise tk.ValidationError({'error': str(e)})
+
+
+def metabase_mapping_update(context, data_dict):
+    tk.check_access('metabase_mapping_update', context, data_dict)
+    try:
+        update_response = utils.metabase_mapping_update(data_dict)
+        return update_response
+    except Exception as e:
+        raise tk.ValidationError({'error': str(e)})
+
+
+def metabase_mapping_delete(context, data_dict):
+    tk.check_access('metabase_mapping_delete', context, data_dict)
+    try:
+        delete_response = utils.metabase_mapping_delete(data_dict)
+        return delete_response
+    except Exception as e:
+        raise tk.ValidationError({'error': str(e)})
+
+
+@tk.side_effect_free
+def metabase_mapping_show(context, data_dict):
+    tk.check_access('metabase_mapping_show', context, data_dict)
+
+    user_id = data_dict.get('user_id')
+    email = data_dict.get('email')
+    if not user_id and not email:
+        raise tk.ValidationError({'id': 'Provide either user id or email'})
+
+    query = model.Session.query(MetabaseMapping).autoflush(False)
+    if user_id:
+        mapping = query.filter_by(user_id=user_id).first()
+    else:
+        mapping = query.filter_by(email=email).first()
+
+    if not mapping:
+        return {
+            "user_id": user_id,
+            "platform_uuid": "",
+            "email": email,
+            "group_ids": [],
+            "collection_ids": []
+        }
+
+    return {
+        "user_id": mapping.user_id,
+        "platform_uuid": mapping.platform_uuid,
+        "email": mapping.email,
+        "group_ids": [g.strip() for g in mapping.group_ids.split(';')],
+        "collection_ids": [c.strip() for c in mapping.collection_ids.split(';')]
+    }
 
 
 def metabase_card_publish(context, data_dict):
