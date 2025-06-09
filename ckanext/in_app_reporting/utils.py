@@ -9,7 +9,6 @@ import ckan.model as model
 import ckan.plugins.toolkit as tk
 import ckanext.in_app_reporting.config as mb_config
 from ckanext.in_app_reporting.model import MetabaseMapping
-from ckanext.opengov.auth.db import UserToken
 
 
 METABASE_SITE_URL = mb_config.metabase_site_url()
@@ -177,6 +176,7 @@ def metabase_mapping_create(data_dict):
             raise tk.ValidationError({'platform_uuid': 'OpenGov User UUID must be a valid UUID string'})
     else:
         try:
+            from ckanext.opengov.auth.db import UserToken
             user_token = model.Session.query(UserToken).filter_by(user_name=user.email).first()
             if user_token:
                 platform_uuid = user_token.platform_uuid
