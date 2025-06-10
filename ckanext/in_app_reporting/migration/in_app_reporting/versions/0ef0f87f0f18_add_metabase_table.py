@@ -25,7 +25,12 @@ def upgrade():
     if "metabase_mapping" not in tables:
         op.create_table(
             "metabase_mapping",
-            sa.Column("user_id", sa.UnicodeText, primary_key=True),
+            sa.Column(
+                "user_id",
+                sa.UnicodeText,
+                sa.ForeignKey("user.id", ondelete="CASCADE", onupdate="CASCADE"),
+                primary_key=True
+            ),
             sa.Column("platform_uuid", sa.UnicodeText, nullable=False),
             sa.Column("email", sa.UnicodeText, nullable=False),
             sa.Column("group_ids", sa.UnicodeText, default=None),

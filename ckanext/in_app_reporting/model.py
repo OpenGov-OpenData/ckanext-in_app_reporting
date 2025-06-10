@@ -32,7 +32,11 @@ metabase_mapping_table = None
 class MetabaseMapping(DomainObject, BaseModel):
     __tablename__ = "metabase_mapping"
 
-    user_id = Column('user_id', ForeignKey("user.id", ondelete="CASCADE", onupdate="CASCADE"), primary_key = True)
+    user_id = Column(
+        types.UnicodeText,
+        ForeignKey("user.id", ondelete="CASCADE", onupdate="CASCADE"),
+        primary_key=True
+    )
     platform_uuid = Column(types.UnicodeText, nullable=False)
     email = Column(types.UnicodeText, nullable=False)
     group_ids = Column(types.UnicodeText)
