@@ -17,6 +17,10 @@ METABASE_JWT_SHARED_SECRET = mb_config.metabase_jwt_shared_secret()
 METABASE_API_KEY = mb_config.metabase_api_key()
 METABASE_DB_ID = mb_config.metabase_db_id()
 
+METABASE_MANAGE_SERVICE_URL = mb_config.metabase_manage_service_url()
+METABASE_SERVICE_KEY = mb_config.metabase_manage_service_key()
+METABASE_CLIENT_ID = mb_config.metabase_client_id()
+
 
 def is_metabase_sso_user(userobj):
     if not userobj:
@@ -56,13 +60,51 @@ def metabase_post_request(url, data_dict):
         return None
 
 
-def get_metabase_iframe_url(model_type, entity_id, bordered, titled, downloads):
-    payload = {
-        "resource": {model_type: entity_id},
-        "params": {},
-        "exp": round(time.time()) + (60 * 10) # 10 minute expiration
+def metabase_manage_service_request(params, payload):
+    headers = {
+        'Authorization': 'Token {}'.format(METABASE_SERVICE_KEY),
+        'Content-Type': 'application/json'
     }
-    token = jwt.encode(payload, METABASE_EMBEDDING_SECRET_KEY, algorithm="HS256")
+    response = requests.post(
+        f"{METABASE_MANAGE_SERVICE_URL}/api/v1/token",
+        params=params,
+        headers=headers,
+        json=payload
+    )
+    try:
+        token = response.json().get('token')
+        if not token:
+            raise tk.ValidationError({'error': 'Failed to retrieve Metabase token'})
+        return token
+    except json.JSONDecodeError:
+        raise tk.ValidationError({'error': 'Failed to decode Metabase token response'})
+
+
+def split_fullname(fullname):
+    if fullname and len(fullname.split(' ')) >= 2:
+        parts = fullname.split(' ')
+        return parts[0], parts[-1]
+    return None, None
+
+
+def get_metabase_iframe_url(model_type, entity_id, bordered, titled, downloads):
+    if not METABASE_MANAGE_SERVICE_URL and METABASE_SERVICE_KEY:
+        payload = {
+            "resource": {model_type: entity_id},
+            "params": {},
+            "exp": round(time.time()) + (60 * 10) # 10 minute expiration
+        }
+        token = jwt.encode(payload, METABASE_EMBEDDING_SECRET_KEY, algorithm="HS256")
+    else:
+        params = {
+            'client_id': METABASE_CLIENT_ID,
+            'embedding_type': 'static',
+        }
+        payload = {
+            "resources": {model_type: entity_id},
+        }
+        token = metabase_manage_service_request(params, payload)
+
     iframeUrl = "{}/embed/{}/{}#bordered={}&titled={}&downloads={}".format(
         METABASE_SITE_URL,
         model_type,
@@ -76,18 +118,31 @@ def get_metabase_iframe_url(model_type, entity_id, bordered, titled, downloads):
 
 def get_metabase_user_token(userobj):
     metabase_mapping = tk.get_action('metabase_mapping_show')({}, {'user_id': userobj.id})
-    payload = {
-        "email": userobj.name,
-        "exp": round(time.time()) + (60 * 10),  # 10 minute expiration
-        "groups": metabase_mapping["group_ids"]
-    }
-    fullname = userobj.fullname
-    if fullname and len(fullname.split(' ')) >= 2:
-        first_name = fullname.split(' ')[0]
-        last_name = fullname.split(' ')[-1]
-        payload["first_name"] = first_name
-        payload["last_name"] = last_name
-    token = jwt.encode(payload, METABASE_JWT_SHARED_SECRET, algorithm="HS256")
+    first_name, last_name = split_fullname(userobj.fullname)
+    if not METABASE_MANAGE_SERVICE_URL and METABASE_SERVICE_KEY:
+        payload = {
+            "email": userobj.name,
+            "exp": round(time.time()) + (60 * 10),  # 10 minute expiration
+            "groups": metabase_mapping["group_ids"]
+        }
+        if first_name and last_name:
+            payload["first_name"] = first_name
+            payload["last_name"] = last_name
+        token = jwt.encode(payload, METABASE_JWT_SHARED_SECRET, algorithm="HS256")
+    else:
+        params = {
+            'client_id': METABASE_CLIENT_ID,
+            'embedding_type': 'interactive',
+            'og_user_id': metabase_mapping.get('platform_uuid'),
+        }
+        payload = {
+            'email': userobj.name,
+            'groups': metabase_mapping.get('group_ids')
+        }
+        if first_name and last_name:
+            payload['firstName'] = first_name
+            payload['lastName'] = last_name
+        token = metabase_manage_service_request(params, payload)
     return token
 
 

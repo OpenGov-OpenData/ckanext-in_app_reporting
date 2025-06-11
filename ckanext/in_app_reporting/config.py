@@ -29,6 +29,30 @@ def metabase_jwt_shared_secret():
     return metabase_jwt_shared_secret
 
 
+def metabase_manage_service_url():
+    metabase_manage_service_url = tk.config.get(
+        'ckanext.in_app_reporting.metabase_manage_service_url')
+    if not metabase_manage_service_url:
+        log.error('ckanext.in_app_reporting.metabase_manage_service_url is not set')
+    return metabase_manage_service_url
+
+
+def metabase_manage_service_key():
+    metabase_manage_service_key = tk.config.get(
+        'ckanext.in_app_reporting.metabase_manage_service_key')
+    if not metabase_manage_service_key:
+        log.error('ckanext.in_app_reporting.metabase_manage_service_key is not set')
+    return metabase_manage_service_key
+
+
+def metabase_client_id():
+    metabase_client_id = tk.config.get(
+        'ckanext.in_app_reporting.metabase_client_id')
+    if not metabase_client_id:
+        log.error('ckanext.in_app_reporting.client_id is not set')
+    return metabase_client_id
+
+
 def metabase_api_key():
     metabase_api_key = tk.config.get(
         'ckanext.in_app_reporting.metabase_api_key')
