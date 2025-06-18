@@ -5,7 +5,7 @@
   {% if res.datastore_active and h.is_metabase_sso_user(g.userobj) and g.userobj.sysadmin %}
     {{ h.build_nav_icon(
       'metabase.metabase_data',
-      _('Metabase'),
+      _('Insights'),
       id=pkg.name,
       resource_id=res.id,
       icon='bar-chart'

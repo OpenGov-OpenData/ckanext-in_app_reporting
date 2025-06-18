@@ -124,7 +124,7 @@ class MetabaseView(MethodView):
 
 
 metabase.add_url_rule(
-    u'/reporting',
+    u'/insights',
     view_func=MetabaseView.metabase_embed,
     methods=[u'GET']
 )
@@ -136,7 +136,7 @@ metabase.add_url_rule(
 )
 
 metabase.add_url_rule(
-    u'/dataset/<id>/metabase_data/<resource_id>',
+    u'/dataset/<id>/insights/<resource_id>',
     view_func=MetabaseView.metabase_data,
     methods=[u'GET', u'POST']
 )

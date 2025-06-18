@@ -28,7 +28,7 @@
         <tbody>
         {% for card in h.get_metabase_cards_by_table_id(table_id) %}
           <tr>
-            <td><a href="/reporting?return_to=/{{card['type']}}/{{card['id']}}">{{ card['name'] }}</a></td>
+            <td><a href="/insights?return_to=/{{card['type']}}/{{card['id']}}">{{ card['name'] }}</a></td>
             <td>{{ card['type'] }}</td>
             <td>{{ card['updated_at'] }}</td>
           </tr>
