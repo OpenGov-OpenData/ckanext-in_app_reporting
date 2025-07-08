@@ -190,6 +190,26 @@ def get_metabase_cards_by_table_id(table_id):
     return matching_cards
 
 
+def get_metabase_cards_by_resource_id(resource_id):
+    userobj = tk.g.userobj
+    metabase_mapping = tk.get_action('metabase_mapping_show')({}, {'user_id': userobj.id})
+    matching_cards = []
+    card_results = metabase_get_request(f'{METABASE_SITE_URL}/api/card?f=database&model_id={METABASE_DB_ID}')
+    if not card_results:
+        return matching_cards
+    for card in card_results:
+        if str(card.get('collection_id')) in metabase_mapping['collection_ids'] and not card.get('table_id'):
+            if resource_id in card.get('dataset_query', {}).get('native',{}).get('query', ''):
+                matching_cards.append({
+                    'id': card.get('id'),
+                    'name': card.get('name'),
+                    'type': card.get('type'),
+                    'updated_at': card.get('updated_at')
+                })
+    matching_cards.sort(key=lambda card: (card['type'], card['name']))
+    return matching_cards
+
+
 def get_metabase_collection_items(model_type):
     userobj = tk.g.userobj
     metabase_mapping = tk.get_action('metabase_mapping_show')({}, {'user_id': userobj.id})

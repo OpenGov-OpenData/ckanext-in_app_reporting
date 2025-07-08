@@ -3,7 +3,7 @@
 {% block header_account_logged %}
   {% if g.userobj.sysadmin and h.is_metabase_sso_user(g.userobj) %}
     <li>
-      <a href="{{ h.url_for('metabase.metabase_embed') }}" title="{{ _('Reporting') }}">
+      <a href="{{ h.url_for('metabase.metabase_embed') }}" title="{{ _('Insights') }}">
         <i class="fa fa-bar-chart"></i>
       </a>
     </li>

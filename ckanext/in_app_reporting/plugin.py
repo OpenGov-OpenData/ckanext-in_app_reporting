@@ -71,7 +71,8 @@ class InAppReportingPlugin(plugins.SingletonPlugin):
             'is_metabase_sso_user': utils.is_metabase_sso_user,
             'get_metabase_embeddable': utils.get_metabase_embeddable,
             'get_metabase_table_id': utils.get_metabase_table_id,
-            'get_metabase_cards_by_table_id': utils.get_metabase_cards_by_table_id
+            'get_metabase_cards_by_table_id': utils.get_metabase_cards_by_table_id,
+            'get_metabase_cards_by_resource_id': utils.get_metabase_cards_by_resource_id
         }
 
 
@@ -88,8 +89,8 @@ class MetabaseCardViewPlugin(plugins.SingletonPlugin):
     def info(self):
         return {
             'name': 'metabase_card_view',
-            'title': 'Embed Card',
-            'default_title': 'Card',
+            'title': 'Embed Question',
+            'default_title': 'Question',
             'icon': 'bar-chart',
             'always_available': False,
             'iframed': True,
