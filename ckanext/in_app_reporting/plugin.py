@@ -40,6 +40,7 @@ class InAppReportingPlugin(plugins.SingletonPlugin):
             'metabase_mapping_update': action.metabase_mapping_update,
             'metabase_mapping_delete': action.metabase_mapping_delete,
             'metabase_mapping_show': action.metabase_mapping_show,
+            'metabase_mapping_list': action.metabase_mapping_list,
             'metabase_card_publish': action.metabase_card_publish,
             'metabase_dashboard_publish': action.metabase_dashboard_publish,
             'metabase_model_create': action.metabase_model_create
@@ -52,6 +53,7 @@ class InAppReportingPlugin(plugins.SingletonPlugin):
             'metabase_mapping_update': auth.metabase_mapping_update,
             'metabase_mapping_delete': auth.metabase_mapping_delete,
             'metabase_mapping_show': auth.metabase_mapping_show,
+            'metabase_mapping_list': auth.metabase_mapping_list,
             'metabase_embed': auth.metabase_embed,
             'metabase_sso': auth.metabase_sso,
             'metabase_data': auth.metabase_data,

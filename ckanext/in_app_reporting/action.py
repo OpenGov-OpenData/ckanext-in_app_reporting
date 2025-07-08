@@ -73,6 +73,25 @@ def metabase_mapping_show(context, data_dict):
     }
 
 
+@tk.side_effect_free
+def metabase_mapping_list(context, data_dict):
+    tk.check_access('metabase_mapping_list', context, data_dict)
+
+    query = model.Session.query(MetabaseMapping).autoflush(False)
+    mappings = query.all()
+
+    mapping_list = []
+    for mapping in mappings:
+        mapping_list.append({
+            "user_id": mapping.user_id,
+            "platform_uuid": mapping.platform_uuid,
+            "email": mapping.email,
+            "group_ids": [g.strip() for g in mapping.group_ids.split(';')],
+            "collection_ids": [c.strip() for c in mapping.collection_ids.split(';')]
+        })
+    return mapping_list
+
+
 def metabase_card_publish(context, data_dict):
     tk.check_access('metabase_card_publish', context, data_dict)
 

@@ -23,6 +23,11 @@ def metabase_mapping_show(context, data_dict):
     return {'success': False}
 
 
+def metabase_mapping_list(context, data_dict):
+    # Only sysadmins can access this
+    return {'success': False}
+
+
 def metabase_embed(context, data_dict):
     # Only sysadmins can access this
     return {'success': False}
