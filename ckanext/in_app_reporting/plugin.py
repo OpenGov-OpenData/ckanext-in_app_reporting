@@ -40,6 +40,7 @@ class InAppReportingPlugin(plugins.SingletonPlugin):
             'metabase_mapping_update': action.metabase_mapping_update,
             'metabase_mapping_delete': action.metabase_mapping_delete,
             'metabase_mapping_show': action.metabase_mapping_show,
+            'metabase_mapping_list': action.metabase_mapping_list,
             'metabase_card_publish': action.metabase_card_publish,
             'metabase_dashboard_publish': action.metabase_dashboard_publish,
             'metabase_model_create': action.metabase_model_create
@@ -52,6 +53,7 @@ class InAppReportingPlugin(plugins.SingletonPlugin):
             'metabase_mapping_update': auth.metabase_mapping_update,
             'metabase_mapping_delete': auth.metabase_mapping_delete,
             'metabase_mapping_show': auth.metabase_mapping_show,
+            'metabase_mapping_list': auth.metabase_mapping_list,
             'metabase_embed': auth.metabase_embed,
             'metabase_sso': auth.metabase_sso,
             'metabase_data': auth.metabase_data,
@@ -71,7 +73,8 @@ class InAppReportingPlugin(plugins.SingletonPlugin):
             'is_metabase_sso_user': utils.is_metabase_sso_user,
             'get_metabase_embeddable': utils.get_metabase_embeddable,
             'get_metabase_table_id': utils.get_metabase_table_id,
-            'get_metabase_cards_by_table_id': utils.get_metabase_cards_by_table_id
+            'get_metabase_cards_by_table_id': utils.get_metabase_cards_by_table_id,
+            'get_metabase_cards_by_resource_id': utils.get_metabase_cards_by_resource_id
         }
 
 
@@ -88,8 +91,8 @@ class MetabaseCardViewPlugin(plugins.SingletonPlugin):
     def info(self):
         return {
             'name': 'metabase_card_view',
-            'title': 'Embed Card',
-            'default_title': 'Card',
+            'title': 'Embed Question',
+            'default_title': 'Question',
             'icon': 'bar-chart',
             'always_available': False,
             'iframed': True,
