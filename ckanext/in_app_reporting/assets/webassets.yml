@@ -16,6 +16,15 @@ card-form-js:
     preload:
       - base/main
 
+insights-tab-js:
+  filter: rjsmin
+  output: ckanext-in_app_reporting/%(version)s-insights-tab.js
+  contents:
+    - js/insights_tab.js
+  extra:
+    preload:
+      - base/main
+
 reporting-css:
   filter: cssrewrite
   output: ckanext-in_app_reporting/%(version)s-reporting.css

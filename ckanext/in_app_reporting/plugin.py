@@ -43,7 +43,8 @@ class InAppReportingPlugin(plugins.SingletonPlugin):
             'metabase_mapping_list': action.metabase_mapping_list,
             'metabase_card_publish': action.metabase_card_publish,
             'metabase_dashboard_publish': action.metabase_dashboard_publish,
-            'metabase_model_create': action.metabase_model_create
+            'metabase_model_create': action.metabase_model_create,
+            'metabase_sql_questions_list': action.metabase_sql_questions_list
         }
 
     # IAuthFunctions
@@ -73,8 +74,7 @@ class InAppReportingPlugin(plugins.SingletonPlugin):
             'is_metabase_sso_user': utils.is_metabase_sso_user,
             'get_metabase_embeddable': utils.get_metabase_embeddable,
             'get_metabase_table_id': utils.get_metabase_table_id,
-            'get_metabase_cards_by_table_id': utils.get_metabase_cards_by_table_id,
-            'get_metabase_cards_by_resource_id': utils.get_metabase_cards_by_resource_id
+            'get_metabase_cards_by_table_id': utils.get_metabase_cards_by_table_id
         }
 
 

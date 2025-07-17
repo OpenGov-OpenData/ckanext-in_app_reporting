@@ -31,7 +31,8 @@ def is_metabase_sso_user(userobj):
         if user:
             if user.is_active() and not user.password:
                 return True
-    return False
+    return True
+    # return False
 
 
 def metabase_get_request(url):
@@ -190,7 +191,7 @@ def get_metabase_cards_by_table_id(table_id):
     return matching_cards
 
 
-def get_metabase_cards_by_resource_id(resource_id):
+def get_metabase_sql_questions(resource_id):
     userobj = tk.g.userobj
     metabase_mapping = tk.get_action('metabase_mapping_show')({}, {'user_id': userobj.id})
     matching_cards = []
