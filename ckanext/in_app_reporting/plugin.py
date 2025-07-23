@@ -73,8 +73,10 @@ class InAppReportingPlugin(plugins.SingletonPlugin):
         return {
             'is_metabase_sso_user': utils.is_metabase_sso_user,
             'get_metabase_embeddable': utils.get_metabase_embeddable,
+            'get_metabase_collection_id': utils.get_metabase_collection_id,
             'get_metabase_table_id': utils.get_metabase_table_id,
-            'get_metabase_cards_by_table_id': utils.get_metabase_cards_by_table_id
+            'get_metabase_model_id': utils.get_metabase_model_id,
+            'get_metabase_cards_by_table_id': utils.get_metabase_cards_by_table_id,
         }
 
 

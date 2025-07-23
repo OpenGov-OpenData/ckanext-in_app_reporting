@@ -3,13 +3,10 @@
 {% block subtitle %}{{ h.dataset_display_name(pkg) }} - {{ h.resource_display_name(res) }}{% endblock %}
 
 {% block primary_content_inner %}
-  {% asset 'reporting/insights-tab-js' %}
-  <div data-resource-id="dd350651-c7d9-4081-bd14-d4a2207cfad3">
   <p>
-    <strong>Datastore Table ID:</strong> {{ res.id }} "dd350651-c7d9-4081-bd14-d4a2207cfad3"
+    <strong>Datastore Table ID:</strong> {{ res.id }}
   </p>
-  </div>
-  {% set table_id = h.get_metabase_table_id("dd350651-c7d9-4081-bd14-d4a2207cfad3") %}
+  {% set table_id = h.get_metabase_table_id(res.id) %}
   {% if table_id %}
     <p>
       <strong>Metabase Table ID:</strong> {{ table_id }}
@@ -36,6 +33,7 @@
             <td>{{ card['updated_at'] }}</td>
           </tr>
         {% endfor %}
+        {% asset 'reporting/insights-tab-js' %}
         <tr id="sql-questions-loading"><td colspan="3"></td></tr>
         </tbody>
       </table>
