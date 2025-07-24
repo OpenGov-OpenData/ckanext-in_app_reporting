@@ -10,7 +10,7 @@
       {{ _('Create Chart') }}
     </a>
     {% else %}
-    <a href="{{ h.url_for('metabase.create_chart', id=pkg.name, resource_id=res.id) }}" class="btn btn-outline-primary" aria-label="Create chart for {{ res.name or res.id }}">
+    <a href="{{ h.url_for('metabase.create_model', id=pkg.name, resource_id=res.id) }}" class="btn btn-outline-primary" aria-label="Create chart for {{ res.name or res.id }}">
       <i class="fa fa-bar-chart"></i>
       {{ _('Create Chart') }}
     </a>

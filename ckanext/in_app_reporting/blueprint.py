@@ -103,7 +103,7 @@ class MetabaseView(MethodView):
             extra_vars=extra_vars
         )
 
-    def create_chart(id, resource_id):
+    def create_model(id, resource_id):
         if not utils.is_metabase_sso_user(tk.g.userobj):
             tk.abort(404, tk._(u'Resource not found'))
         try:
@@ -180,8 +180,8 @@ metabase.add_url_rule(
 )
 
 metabase.add_url_rule(
-    u'/metabase/create_chart/<id>/<resource_id>',
-    view_func=MetabaseView.create_chart,
+    u'/metabase/create_model/<id>/<resource_id>',
+    view_func=MetabaseView.create_model,
     methods=[u'GET']
 )
 
