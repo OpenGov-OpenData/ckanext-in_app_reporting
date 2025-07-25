@@ -16,6 +16,7 @@ METABASE_EMBEDDING_SECRET_KEY = mb_config.metabase_embedding_secret_key()
 METABASE_JWT_SHARED_SECRET = mb_config.metabase_jwt_shared_secret()
 METABASE_API_KEY = mb_config.metabase_api_key()
 METABASE_DB_ID = mb_config.metabase_db_id()
+collection_ids = mb_config.collection_ids()
 
 METABASE_MANAGE_SERVICE_URL = mb_config.metabase_manage_service_url()
 METABASE_SERVICE_KEY = mb_config.metabase_manage_service_key()
@@ -158,6 +159,14 @@ def get_metabase_embeddable(model_type):
     return embeddable_items
 
 
+def get_metabase_collection_id():
+    if len(collection_ids) > 0:
+        collection_id = collection_ids[0]
+        return collection_id
+    else:
+        return ''
+
+
 def get_metabase_table_id(table_name):
     table_id = None
     result = metabase_get_request(
@@ -169,6 +178,18 @@ def get_metabase_table_id(table_name):
             table_id = table.get('id')
             break
     return table_id
+
+
+def get_metabase_model_id(table_id):
+    card_results = metabase_get_request(f'{METABASE_SITE_URL}/api/card?f=table&model_id={table_id}')
+    model_id = ''
+    if not card_results:
+        return model_id
+    for card in card_results:
+        if card.get('type') == 'model':
+            model_id = card.get('id')
+            break
+    return model_id
 
 
 def get_metabase_cards_by_table_id(table_id):
@@ -190,7 +211,7 @@ def get_metabase_cards_by_table_id(table_id):
     return matching_cards
 
 
-def get_metabase_cards_by_resource_id(resource_id):
+def get_metabase_sql_questions(resource_id):
     userobj = tk.g.userobj
     metabase_mapping = tk.get_action('metabase_mapping_show')({}, {'user_id': userobj.id})
     matching_cards = []

@@ -9,6 +9,7 @@ import ckanext.in_app_reporting.config as mb_config
 
 
 METABASE_SITE_URL = mb_config.metabase_site_url()
+collection_ids = mb_config.collection_ids()
 metabase = Blueprint(u'metabase', __name__)
 
 
@@ -86,11 +87,11 @@ class MetabaseView(MethodView):
                 }
                 if resource.get('description'):
                     model_dict['description'] = resource.get('description')
-                model_result = tk.get_action('metabase_model_create')({'ignore_auth': True}, model_dict)
-                if not model_result.get('success'):
+                model_response = tk.get_action('metabase_model_create')({'ignore_auth': True}, model_dict)
+                if not model_response.get('success'):
                     tk.h.flash_error(tk._('Failed to create model'))
                 return tk.redirect_to(redirect_url)
-            except Exception as err:
+            except Exception:
                 tk.h.flash_error('Failed to create model')
 
         extra_vars = {
@@ -101,6 +102,43 @@ class MetabaseView(MethodView):
             u'metabase/metabase_data.html',
             extra_vars=extra_vars
         )
+
+    def create_model(id, resource_id):
+        if not utils.is_metabase_sso_user(tk.g.userobj):
+            tk.abort(404, tk._(u'Resource not found'))
+        try:
+            context = {
+                u'model': model,
+                u'user': tk.g.user,
+                u'auth_user_obj': tk.g.userobj
+            }
+            tk.check_access('metabase_data', context, {})
+            pkg_dict = tk.get_action('package_show')(None, {'id': id})
+            resource = tk.get_action('resource_show')(None, {'id': resource_id})
+        except (tk.ObjectNotFound, tk.NotAuthorized):
+            tk.abort(404, tk._('Resource not found'))
+        try:
+            resource_name = resource.get('name') or resource.get('id')
+            model_name = '%s - %s' % (pkg_dict.get('title'), resource_name)
+            model_dict = {
+                'resource_id': resource_id,
+                'name': model_name
+            }
+            if resource.get('description'):
+                model_dict['description'] = resource.get('description')
+            model_response = tk.get_action('metabase_model_create')({'ignore_auth': True}, model_dict)
+            if model_response.get('success'):
+                model_result = model_response.get('result', {})
+                model_id = model_result.get('id')
+                if model_id:
+                    return tk.redirect_to('/insights?return_to=/model/{0}/notebook'.format(model_id))
+        except Exception as e:
+            if hasattr(e, 'error_dict') and e.error_dict.get('error'):
+                error_message = e.error_dict.get('error')
+            else:
+                error_message = 'Failed to create model'
+            tk.abort(404, error_message)
+        return tk.redirect_to('/insights?return_to=/collection/{0}'.format(collection_ids[0]))
 
     def get_metabase_collection_items(model_type):
         if not utils.is_metabase_sso_user(tk.g.userobj):
@@ -142,7 +180,13 @@ metabase.add_url_rule(
 )
 
 metabase.add_url_rule(
-    u'/get_metabase_collection_items/<string:model_type>',
+    u'/metabase/create_model/<id>/<resource_id>',
+    view_func=MetabaseView.create_model,
+    methods=[u'GET']
+)
+
+metabase.add_url_rule(
+    u'/metabase/collection_items_list/<string:model_type>',
     view_func=MetabaseView.get_metabase_collection_items,
     methods=[u'GET']
 )

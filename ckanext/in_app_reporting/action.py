@@ -92,6 +92,25 @@ def metabase_mapping_list(context, data_dict):
     return mapping_list
 
 
+@tk.side_effect_free
+def metabase_sql_questions_list(context, data_dict):
+    tk.check_access('metabase_model_create', context, data_dict)
+
+    resource_id = data_dict.get('resource_id')
+    if not resource_id or not isinstance(resource_id, str):
+        raise tk.ValidationError({'resource_id': 'Resource ID required'})
+
+    try:
+        tk.get_action('resource_show')(None, {'id': resource_id})
+    except (tk.ObjectNotFound, tk.NotAuthorized):
+        raise tk.ValidationError({'error': 'Resource not found'})
+
+    questions = utils.get_metabase_sql_questions(resource_id)
+    if not questions:
+        return []
+    return questions
+
+
 def metabase_card_publish(context, data_dict):
     tk.check_access('metabase_card_publish', context, data_dict)
 
@@ -161,7 +180,7 @@ def metabase_model_create(context, data_dict):
         raise tk.ValidationError({'name': 'Model name required'})
 
     try:
-        resource = tk.get_action('resource_show')(None, {'id': resource_id})
+        tk.get_action('resource_show')(None, {'id': resource_id})
     except (tk.ObjectNotFound, tk.NotAuthorized):
         raise tk.ValidationError({'error': 'Resource not found'})
 
@@ -170,6 +189,8 @@ def metabase_model_create(context, data_dict):
     if not search_results:
         raise tk.ValidationError({'error': 'Failed to find resource in Metabase'})
 
+    # Find the table that matches the resource ID
+    table_id = None
     for item in search_results.get('data', []):
         if item.get('table_name') == resource_id:
             table_id = item.get('table_id')
@@ -212,6 +233,6 @@ def metabase_model_create(context, data_dict):
     response = utils.metabase_post_request(
         f'{METABASE_SITE_URL}/api/card', model_dict)
     if response:
-        return {'success': True, 'result': response}
+        return response
     else:
         raise tk.ValidationError({'error': 'Failed to publish card'})

@@ -1,9 +1,16 @@
 {% ckan_extends %}
 
+{% set collection_id = h.get_metabase_collection_id() %}
+{% if collection_id %}
+  {% set metabase_url = h.url_for('metabase.metabase_embed') + '?return_to=/collection/' + collection_id %}
+{% else %}
+  {% set metabase_url = h.url_for('metabase.metabase_embed') %}
+{% endif %}
+
 {% block header_account_logged %}
   {% if g.userobj.sysadmin and h.is_metabase_sso_user(g.userobj) %}
     <li>
-      <a href="{{ h.url_for('metabase.metabase_embed') }}" title="{{ _('Insights') }}">
+      <a href="{{ metabase_url }}" title="{{ _('Insights') }}">
         <i class="fa fa-bar-chart"></i>
       </a>
     </li>

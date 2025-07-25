@@ -21,11 +21,11 @@
         <thead>
           <tr>
             <th>Name</th>
-            <th width="128px">Type</th>
-            <th width="256px">Updated at</th>
+            <th width="120px">Type</th>
+            <th width="250px">Updated at</th>
           </tr>
         </thead>
-        <tbody>
+        <tbody id="metabase-cards-body">
         {% for card in h.get_metabase_cards_by_table_id(table_id) %}
           <tr>
             <td><a href="/insights?return_to=/{{card['type']}}/{{card['id']}}">{{ card['name'] }}</a></td>
@@ -33,13 +33,8 @@
             <td>{{ card['updated_at'] }}</td>
           </tr>
         {% endfor %}
-        {% for card in h.get_metabase_cards_by_resource_id(res.id) %}
-          <tr>
-            <td><a href="/insights?return_to=/{{card['type']}}/{{card['id']}}">{{ card['name'] }}</a></td>
-            <td>{{ card['type'] }} (SQL)</td>
-            <td>{{ card['updated_at'] }}</td>
-          </tr>
-        {% endfor %}
+        {% asset 'reporting/insights-tab-js' %}
+        <tr id="sql-questions-loading"><td colspan="3"></td></tr>
         </tbody>
       </table>
     {% endif %}
