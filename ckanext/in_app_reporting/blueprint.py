@@ -131,7 +131,7 @@ class MetabaseView(MethodView):
                 model_result = model_response.get('result', {})
                 model_id = model_result.get('id')
                 if model_id:
-                    return tk.redirect_to('/insights?return_to=/model/{0}/notebook'.format(model_id))
+                    return tk.redirect_to('/insights?return_to=/model/{0}'.format(model_id))
         except Exception as e:
             if hasattr(e, 'error_dict') and e.error_dict.get('error'):
                 error_message = e.error_dict.get('error')

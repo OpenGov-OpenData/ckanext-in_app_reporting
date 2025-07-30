@@ -17,6 +17,7 @@ METABASE_JWT_SHARED_SECRET = mb_config.metabase_jwt_shared_secret()
 METABASE_API_KEY = mb_config.metabase_api_key()
 METABASE_DB_ID = mb_config.metabase_db_id()
 collection_ids = mb_config.collection_ids()
+group_ids = mb_config.group_ids()
 
 METABASE_MANAGE_SERVICE_URL = mb_config.metabase_manage_service_url()
 METABASE_SERVICE_KEY = mb_config.metabase_manage_service_key()
@@ -118,6 +119,13 @@ def get_metabase_iframe_url(model_type, entity_id, bordered, titled, downloads):
 
 def get_metabase_user_token(userobj):
     metabase_mapping = tk.get_action('metabase_mapping_show')({}, {'user_id': userobj.id})
+    if not metabase_mapping:
+        # If no mapping exists, use default values
+        metabase_mapping = {
+            'platform_uuid': None,
+            'group_ids': group_ids,
+            'collection_ids': collection_ids
+        }
     first_name, last_name = split_fullname(userobj.fullname)
     if METABASE_MANAGE_SERVICE_URL and METABASE_SERVICE_KEY:
         params = {

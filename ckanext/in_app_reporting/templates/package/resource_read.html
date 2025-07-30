@@ -5,7 +5,7 @@
     {% set table_id = h.get_metabase_table_id(res.id) %}
     {% set model_id = h.get_metabase_model_id(table_id) %}
     {% if model_id %}
-    <a href="/insights?return_to=/model/{{model_id}}/notebook" class="btn btn-outline-primary" aria-label="Create chart for {{ res.name or res.id }}">
+    <a href="/insights?return_to=/model/{{model_id}}" class="btn btn-outline-primary" aria-label="Create chart for {{ res.name or res.id }}">
       <i class="fa fa-bar-chart"></i>
       {{ _('Create Chart') }}
     </a>
