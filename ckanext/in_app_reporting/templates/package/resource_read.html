@@ -2,19 +2,10 @@
 
 {% block resource_actions_inner %}
   {% if res.datastore_active and h.is_metabase_sso_user(g.userobj) %}
-    {% set table_id = h.get_metabase_table_id(res.id) %}
-    {% set model_id = h.get_metabase_model_id(table_id) %}
-    {% if model_id %}
-    <a href="/insights?return_to=/model/{{model_id}}" class="btn btn-outline-primary" aria-label="Create chart for {{ res.name or res.id }}">
+    <a href="{{ h.url_for('metabase.create_chart', id=pkg.name, resource_id=res.id) }}" class="btn btn-outline-primary" aria-label="Create chart for {{ res.name or res.id }}">
       <i class="fa fa-bar-chart"></i>
       {{ _('Create Chart') }}
     </a>
-    {% else %}
-    <a href="{{ h.url_for('metabase.create_model', id=pkg.name, resource_id=res.id) }}" class="btn btn-outline-primary" aria-label="Create chart for {{ res.name or res.id }}">
-      <i class="fa fa-bar-chart"></i>
-      {{ _('Create Chart') }}
-    </a>
-    {% endif %}
   {% endif %}
   {{ super() }}
 {% endblock %}
