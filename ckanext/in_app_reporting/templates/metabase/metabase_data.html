@@ -4,7 +4,7 @@
 
 {% block primary_content_inner %}
   <p>
-    <strong>Datastore Table ID:</strong> {{ res.id }}
+    <strong>Datastore Table ID:</strong> <span data-resource-id="{{res.id}}">{{res.id}}</span>
   </p>
   {% set table_id = h.get_metabase_table_id(res.id) %}
   {% if table_id %}
@@ -21,7 +21,7 @@
         <thead>
           <tr>
             <th>Name</th>
-            <th width="120px">Type</th>
+            <th width="125px">Type</th>
             <th width="250px">Updated at</th>
           </tr>
         </thead>
