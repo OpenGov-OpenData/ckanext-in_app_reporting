@@ -127,7 +127,7 @@ class MetabaseView(MethodView):
         if table_id:
             model_id = utils.get_metabase_model_id(table_id)
             if model_id:
-                return tk.redirect_to('/insights?return_to=/model/{0}'.format(model_id))
+                return tk.redirect_to('/insights?return_to=/model/{0}#content'.format(model_id))
 
         # If no model exists, create a new one
         resource_name = resource.get('name') or resource.get('id')
@@ -141,7 +141,7 @@ class MetabaseView(MethodView):
         model_response = tk.get_action('metabase_model_create')({'ignore_auth': True}, model_dict)
         model_id = model_response.get('id')
         if model_id:
-            return tk.redirect_to('/insights?return_to=/model/{0}'.format(model_id))
+            return tk.redirect_to('/insights?return_to=/model/{0}#content'.format(model_id))
 
         # If all else fails, redirect to the default collection
         log.error('Failed to find or create model for resource %s: %s', resource_id, model_response)
