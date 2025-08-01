@@ -11,7 +11,6 @@ $(document).ready(function () {
     })
     .then(response => response.json())
     .then(result => {
-    if (!result.success) throw new Error('API error');
     const data = result.result;
     const tbody = document.getElementById('metabase-cards-body');
     const loadingRow = document.getElementById('sql-questions-loading');

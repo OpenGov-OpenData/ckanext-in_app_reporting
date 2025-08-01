@@ -1,3 +1,4 @@
+import logging
 from flask import Blueprint, request
 from flask.views import MethodView
 from urllib.parse import urlencode, urljoin
@@ -7,6 +8,8 @@ import ckan.plugins.toolkit as tk
 import ckanext.in_app_reporting.utils as utils
 import ckanext.in_app_reporting.config as mb_config
 
+
+log = logging.getLogger(__name__)
 
 METABASE_SITE_URL = mb_config.metabase_site_url()
 collection_ids = mb_config.collection_ids()
@@ -103,9 +106,10 @@ class MetabaseView(MethodView):
             extra_vars=extra_vars
         )
 
-    def create_model(id, resource_id):
+    def create_chart(id, resource_id):
         if not utils.is_metabase_sso_user(tk.g.userobj):
             tk.abort(404, tk._(u'Resource not found'))
+
         try:
             context = {
                 u'model': model,
@@ -117,27 +121,30 @@ class MetabaseView(MethodView):
             resource = tk.get_action('resource_show')(None, {'id': resource_id})
         except (tk.ObjectNotFound, tk.NotAuthorized):
             tk.abort(404, tk._('Resource not found'))
-        try:
-            resource_name = resource.get('name') or resource.get('id')
-            model_name = '%s - %s' % (pkg_dict.get('title'), resource_name)
-            model_dict = {
-                'resource_id': resource_id,
-                'name': model_name
-            }
-            if resource.get('description'):
-                model_dict['description'] = resource.get('description')
-            model_response = tk.get_action('metabase_model_create')({'ignore_auth': True}, model_dict)
-            if model_response.get('success'):
-                model_result = model_response.get('result', {})
-                model_id = model_result.get('id')
-                if model_id:
-                    return tk.redirect_to('/insights?return_to=/model/{0}'.format(model_id))
-        except Exception as e:
-            if hasattr(e, 'error_dict') and e.error_dict.get('error'):
-                error_message = e.error_dict.get('error')
-            else:
-                error_message = 'Failed to create model'
-            tk.abort(404, error_message)
+
+        # Try to find an existing model for the resource
+        table_id= utils.get_metabase_table_id(resource_id)
+        if table_id:
+            model_id = utils.get_metabase_model_id(table_id)
+            if model_id:
+                return tk.redirect_to('/insights?return_to=/model/{0}'.format(model_id))
+
+        # If no model exists, create a new one
+        resource_name = resource.get('name') or resource.get('id')
+        model_name = '%s - %s' % (pkg_dict.get('title'), resource_name)
+        model_dict = {
+            'resource_id': resource_id,
+            'name': model_name
+        }
+        if resource.get('description'):
+            model_dict['description'] = resource.get('description')
+        model_response = tk.get_action('metabase_model_create')({'ignore_auth': True}, model_dict)
+        model_id = model_response.get('id')
+        if model_id:
+            return tk.redirect_to('/insights?return_to=/model/{0}'.format(model_id))
+
+        # If all else fails, redirect to the default collection
+        log.error('Failed to find or create model for resource %s: %s', resource_id, model_response)
         return tk.redirect_to('/insights?return_to=/collection/{0}'.format(collection_ids[0]))
 
     def get_metabase_collection_items(model_type):
@@ -180,8 +187,8 @@ metabase.add_url_rule(
 )
 
 metabase.add_url_rule(
-    u'/metabase/create_model/<id>/<resource_id>',
-    view_func=MetabaseView.create_model,
+    u'/metabase/create_chart/<id>/<resource_id>',
+    view_func=MetabaseView.create_chart,
     methods=[u'GET']
 )
 
