@@ -30,7 +30,7 @@
         {% block flash %}
           {{ super() }}
         {% endblock %}
-        <iframe
+        <iframe id="metabase-interactive-embed"
             src={{ sso_url }}
             frameborder="0"
             width="100%"

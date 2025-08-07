@@ -56,13 +56,7 @@ def metabase_mapping_show(context, data_dict):
         mapping = query.filter_by(email=email).first()
 
     if not mapping:
-        return {
-            "user_id": user_id,
-            "platform_uuid": "",
-            "email": email,
-            "group_ids": [],
-            "collection_ids": []
-        }
+        raise tk.ObjectNotFound('Metabase mapping not found')
 
     return {
         "user_id": mapping.user_id,

@@ -107,7 +107,7 @@ class MetabaseCardViewPlugin(plugins.SingletonPlugin):
         }
 
     def can_view(self, data_dict):
-        if not toolkit.g.userobj.sysadmin:
+        if not utils.is_metabase_sso_user(toolkit.g.userobj):
             return False
         resource = data_dict['resource']
         return resource.get('datastore_active', False)
@@ -153,7 +153,7 @@ class MetabaseDashboardViewPlugin(plugins.SingletonPlugin):
         }
 
     def can_view(self, data_dict):
-        if not toolkit.g.userobj.sysadmin:
+        if not utils.is_metabase_sso_user(toolkit.g.userobj):
             return False
         resource = data_dict['resource']
         return resource.get('datastore_active', False)

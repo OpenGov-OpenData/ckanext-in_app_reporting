@@ -1,11 +1,13 @@
 {% ckan_extends %}
 
 {% block resource_actions_inner %}
-  {% if res.datastore_active and h.is_metabase_sso_user(g.userobj) %}
-    <a href="{{ h.url_for('metabase.create_chart', id=pkg.name, resource_id=res.id) }}" class="btn btn-outline-primary" aria-label="Create chart for {{ res.name or res.id }}">
-      <i class="fa fa-bar-chart"></i>
-      {{ _('Create Chart') }}
-    </a>
+  {% if h.check_access('package_update', {'id': pkg.id }) and res.datastore_active and h.is_metabase_sso_user(g.userobj) %}
+    <li>
+      <a href="{{ h.url_for('metabase.create_chart', id=pkg.name, resource_id=res.id) }}" class="btn btn-outline-primary" aria-label="Create chart for {{ res.name or res.id }}">
+        <i class="fa fa-bar-chart"></i>
+        {{ _('Create Chart') }}
+      </a>
+    </li>
   {% endif %}
   {{ super() }}
 {% endblock %}

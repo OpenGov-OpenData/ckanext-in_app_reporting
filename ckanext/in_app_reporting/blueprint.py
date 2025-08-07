@@ -62,15 +62,13 @@ class MetabaseView(MethodView):
             tk.abort(404, tk._(u'Resource not found'))
 
     def metabase_data(id, resource_id):
-        if not utils.is_metabase_sso_user(tk.g.userobj):
-            tk.abort(404, tk._(u'Resource not found'))
         try:
             context = {
                 u'model': model,
                 u'user': tk.g.user,
                 u'auth_user_obj': tk.g.userobj
             }
-            tk.check_access('metabase_data', context, {})
+            tk.check_access('metabase_data', context, {'id': resource_id})
         except tk.NotAuthorized:
             tk.abort(404, tk._(u'Resource not found'))
         try:
@@ -90,7 +88,11 @@ class MetabaseView(MethodView):
                 }
                 if resource.get('description'):
                     model_dict['description'] = resource.get('description')
-                model_response = tk.get_action('metabase_model_create')({'ignore_auth': True}, model_dict)
+                try:
+                    model_response = tk.get_action('metabase_model_create')({'ignore_auth': True}, model_dict)
+                except tk.ValidationError as e:
+                    log.error('Failed to create model for resource %s: %s', resource_id, e)
+                    tk.h.flash_error(tk._('Failed to create model: {0}').format(e))
                 if not model_response.get('success'):
                     tk.h.flash_error(tk._('Failed to create model'))
                 return tk.redirect_to(redirect_url)
@@ -116,7 +118,7 @@ class MetabaseView(MethodView):
                 u'user': tk.g.user,
                 u'auth_user_obj': tk.g.userobj
             }
-            tk.check_access('metabase_data', context, {})
+            tk.check_access('metabase_data', context, {'id': resource_id})
             pkg_dict = tk.get_action('package_show')(None, {'id': id})
             resource = tk.get_action('resource_show')(None, {'id': resource_id})
         except (tk.ObjectNotFound, tk.NotAuthorized):
@@ -138,7 +140,12 @@ class MetabaseView(MethodView):
         }
         if resource.get('description'):
             model_dict['description'] = resource.get('description')
-        model_response = tk.get_action('metabase_model_create')({'ignore_auth': True}, model_dict)
+        try:
+            model_response = tk.get_action('metabase_model_create')({'ignore_auth': True}, model_dict)
+        except tk.ValidationError as e:
+            log.error('Failed to create model for resource %s: %s', resource_id, e)
+            tk.h.flash_error(tk._('Failed to create model: {0}').format(e))
+            return tk.redirect_to('/insights?return_to=/collection/{0}'.format(collection_ids[0]))
         model_id = model_response.get('id')
         if model_id:
             return tk.redirect_to('/insights?return_to=/model/{0}#content'.format(model_id))

@@ -2,7 +2,7 @@
 
 {% block inner_primary_nav %}
   {{ super() }}
-  {% if res.datastore_active and h.is_metabase_sso_user(g.userobj) and g.userobj.sysadmin %}
+  {% if res.datastore_active and h.is_metabase_sso_user(g.userobj) %}
     {{ h.build_nav_icon(
       'metabase.metabase_data',
       _('Insights'),
