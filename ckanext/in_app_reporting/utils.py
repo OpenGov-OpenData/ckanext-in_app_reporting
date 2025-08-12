@@ -27,12 +27,32 @@ METABASE_CLIENT_ID = mb_config.metabase_client_id()
 def is_metabase_sso_user(userobj):
     if not userobj:
         return False
+
     user_name = userobj.name
+    if not user_is_admin_or_editor(user_name):
+        return False
+
     if re.match("[^@]+@[^@]+\.[^@]+", user_name, re.IGNORECASE):
         user = model.User.by_name(user_name)
         if user:
             if user.is_active() and not user.password:
                 return True
+    return False
+
+
+def user_is_admin_or_editor(user):
+    userobj = model.User.get(user)
+    if userobj.sysadmin:
+        return True
+
+    allowed_roles = ['admin', 'editor']
+    memberships = model.Session.query(model.Member)\
+        .filter_by(table_name='user', table_id=userobj.id)\
+        .filter(model.Member.group_id != None)\
+        .all()
+    for membership in memberships:
+        if membership.capacity in allowed_roles:
+            return True
     return False
 
 
@@ -118,8 +138,9 @@ def get_metabase_iframe_url(model_type, entity_id, bordered, titled, downloads):
 
 
 def get_metabase_user_token(userobj):
-    metabase_mapping = tk.get_action('metabase_mapping_show')({}, {'user_id': userobj.id})
-    if not metabase_mapping:
+    try:
+        metabase_mapping = tk.get_action('metabase_mapping_show')({'ignore_auth': True}, {'user_id': userobj.id})
+    except tk.ObjectNotFound:
         # If no mapping exists, use default values
         metabase_mapping = {
             'platform_uuid': None,
@@ -202,7 +223,15 @@ def get_metabase_model_id(table_id):
 
 def get_metabase_cards_by_table_id(table_id):
     userobj = tk.g.userobj
-    metabase_mapping = tk.get_action('metabase_mapping_show')({}, {'user_id': userobj.id})
+    try:
+        metabase_mapping = tk.get_action('metabase_mapping_show')({'ignore_auth': True}, {'user_id': userobj.id})
+    except tk.ObjectNotFound:
+        # If no mapping exists, use default values
+        metabase_mapping = {
+            'platform_uuid': None,
+            'group_ids': group_ids,
+            'collection_ids': collection_ids
+        }
     matching_cards = []
     card_results = metabase_get_request(f'{METABASE_SITE_URL}/api/card?f=table&model_id={table_id}')
     if not card_results:
@@ -221,7 +250,15 @@ def get_metabase_cards_by_table_id(table_id):
 
 def get_metabase_sql_questions(resource_id):
     userobj = tk.g.userobj
-    metabase_mapping = tk.get_action('metabase_mapping_show')({}, {'user_id': userobj.id})
+    try:
+        metabase_mapping = tk.get_action('metabase_mapping_show')({'ignore_auth': True}, {'user_id': userobj.id})
+    except tk.ObjectNotFound:
+        # If no mapping exists, use default values
+        metabase_mapping = {
+            'platform_uuid': None,
+            'group_ids': group_ids,
+            'collection_ids': collection_ids
+        }
     matching_cards = []
     card_results = metabase_get_request(f'{METABASE_SITE_URL}/api/card?f=database&model_id={METABASE_DB_ID}')
     if not card_results:
@@ -241,7 +278,15 @@ def get_metabase_sql_questions(resource_id):
 
 def get_metabase_collection_items(model_type):
     userobj = tk.g.userobj
-    metabase_mapping = tk.get_action('metabase_mapping_show')({}, {'user_id': userobj.id})
+    try:
+        metabase_mapping = tk.get_action('metabase_mapping_show')({'ignore_auth': True}, {'user_id': userobj.id})
+    except tk.ObjectNotFound:
+        # If no mapping exists, use default values
+        metabase_mapping = {
+            'platform_uuid': None,
+            'group_ids': group_ids,
+            'collection_ids': collection_ids
+        }
     collection_items = []
     if model_type not in ['dashboard', 'card']:
         return collection_items
@@ -254,6 +299,7 @@ def get_metabase_collection_items(model_type):
         for item in collection_results.get('data', []):
             item['text'] = item.get('name', '')
             collection_items.append(item)
+    collection_items.sort(key=lambda item: (item['last-edit-info']['timestamp']), reverse=True)
     return collection_items
 
 

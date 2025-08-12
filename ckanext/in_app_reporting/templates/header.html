@@ -8,7 +8,7 @@
 {% endif %}
 
 {% block header_account_logged %}
-  {% if g.userobj.sysadmin and h.is_metabase_sso_user(g.userobj) %}
+  {% if h.is_metabase_sso_user(g.userobj) %}
     <li>
       <a href="{{ metabase_url }}" title="{{ _('Insights') }}">
         <i class="fa fa-bar-chart"></i>

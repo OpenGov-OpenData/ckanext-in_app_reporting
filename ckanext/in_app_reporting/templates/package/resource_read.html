@@ -1,11 +1,30 @@
 {% ckan_extends %}
 
 {% block resource_actions_inner %}
-  {% if res.datastore_active and h.is_metabase_sso_user(g.userobj) %}
-    <a href="{{ h.url_for('metabase.create_chart', id=pkg.name, resource_id=res.id) }}" class="btn btn-outline-primary" aria-label="Create chart for {{ res.name or res.id }}">
-      <i class="fa fa-bar-chart"></i>
-      {{ _('Create Chart') }}
-    </a>
+  {% if h.check_access('package_update', {'id': pkg.id }) and res.datastore_active and h.is_metabase_sso_user(g.userobj) %}
+    <li>
+      <div class="btn-group">
+        <a class="btn btn-outline-primary"href="{{ h.url_for('metabase.create_chart', id=pkg.name, resource_id=res.id) }}" target="_blank" aria-label="Create chart for {{ res.name or res.id }}">
+          <i class="fa fa-bar-chart"></i>
+          {{ _('Create Chart') }}
+        </a>
+        <button class="btn btn-outline-primary dropdown-toggle" role="button" id="dropdownInsights" data-toggle="dropdown" data-bs-toggle="dropdown" aria-expanded="false" aria-label="List of actions for insights">
+          <span class="caret"></span>
+        </button>
+        <ul class="dropdown-menu" aria-labelledby="dropdownInsights">
+          <li>
+            <a class="dropdown-item" href="{{ h.url_for(pkg.type ~ '_resource.edit_view', id=pkg.name, resource_id=res.id, view_type='metabase_card_view') }}" target="_blank">
+              <span>{{ _('Embed Chart') }}</span>
+            </a>
+          </li>
+          <li>
+            <a class="dropdown-item" href="{{ h.url_for(pkg.type ~ '_resource.edit_view', id=pkg.name, resource_id=res.id, view_type='metabase_dashboard_view') }}" target="_blank">
+              <span>{{ _('Embed Dashboard') }}</span>
+            </a>
+          </li>
+        </ul>
+      </div>
+    </li>
   {% endif %}
   {{ super() }}
 {% endblock %}

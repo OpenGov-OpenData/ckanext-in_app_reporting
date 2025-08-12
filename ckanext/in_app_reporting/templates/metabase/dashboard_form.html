@@ -5,7 +5,7 @@
 
 {% set embeddable_dashboards = h.get_metabase_embeddable('dashboard') %}
 
-{% if g.userobj.sysadmin %}
+{% if h.is_metabase_sso_user(g.userobj) %}
 <div class="row">
   <div class="span12 col-md-12">
     {% set

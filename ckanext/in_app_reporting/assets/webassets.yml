@@ -30,3 +30,9 @@ reporting-css:
   output: ckanext-in_app_reporting/%(version)s-reporting.css
   contents:
     - css/in_app_reporting.css
+
+resource-item-css:
+  filter: cssrewrite
+  output: ckanext-in_app_reporting/%(version)s-resource-item.css
+  contents:
+    - css/resource_item.css

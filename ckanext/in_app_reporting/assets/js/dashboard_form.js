@@ -14,7 +14,7 @@ ckan.module('get-metabase-collection-items', function (jQuery) {
 
         formatResult: function (result) {
             var date = (new Date(result['last-edit-info']['timestamp']));
-            var markup = "<div class='metabase-result'><span class='title'>" + result.name + "</span><span class='modified'>modified " + date.toLocaleDateString() + "</span></div>";
+            var markup = "<div class='metabase-result'><span class='title'>" + result.name + "</span><span class='modified'>modified " + date.toLocaleString() + "</span></div>";
             return markup;
         },
 
