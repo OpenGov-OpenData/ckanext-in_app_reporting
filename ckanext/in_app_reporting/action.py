@@ -88,11 +88,11 @@ def metabase_mapping_list(context, data_dict):
 
 @tk.side_effect_free
 def metabase_sql_questions_list(context, data_dict):
-    tk.check_access('metabase_model_create', context, data_dict)
-
     resource_id = data_dict.get('resource_id')
     if not resource_id or not isinstance(resource_id, str):
         raise tk.ValidationError({'resource_id': 'Resource ID required'})
+
+    tk.check_access('metabase_model_create', context, {'id': resource_id})
 
     try:
         tk.get_action('resource_show')(None, {'id': resource_id})

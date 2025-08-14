@@ -42,17 +42,27 @@ def is_metabase_sso_user(userobj):
 
 def user_is_admin_or_editor(user):
     userobj = model.User.get(user)
+    # If user is not found, return False
+    if not userobj:
+        return False
+
+    # If user is sysadmin, return True
     if userobj.sysadmin:
         return True
 
+    # If user is not sysadmin, check if they have admin or editor role in any active organization
     allowed_roles = ['admin', 'editor']
-    memberships = model.Session.query(model.Member)\
-        .filter_by(table_name='user', table_id=userobj.id)\
-        .filter(model.Member.group_id != None)\
-        .all()
-    for membership in memberships:
-        if membership.capacity in allowed_roles:
-            return True
+    try:
+        user_organizations = tk.get_action('organization_list_for_user')(
+            {'ignore_auth': True},
+            {'id': userobj.id}
+        )
+        for org in user_organizations:
+            if org.get('capacity', '') in allowed_roles and org.get('state') == 'active':
+                return True
+    except Exception:
+        pass
+
     return False
 
 
@@ -222,16 +232,14 @@ def get_metabase_model_id(table_id):
 
 
 def get_metabase_cards_by_table_id(table_id):
-    userobj = tk.g.userobj
+    metabase_mapping = {
+        'collection_ids': collection_ids
+    }
     try:
+        userobj = tk.g.userobj
         metabase_mapping = tk.get_action('metabase_mapping_show')({'ignore_auth': True}, {'user_id': userobj.id})
-    except tk.ObjectNotFound:
-        # If no mapping exists, use default values
-        metabase_mapping = {
-            'platform_uuid': None,
-            'group_ids': group_ids,
-            'collection_ids': collection_ids
-        }
+    except Exception:
+        pass
     matching_cards = []
     card_results = metabase_get_request(f'{METABASE_SITE_URL}/api/card?f=table&model_id={table_id}')
     if not card_results:
@@ -249,16 +257,14 @@ def get_metabase_cards_by_table_id(table_id):
 
 
 def get_metabase_sql_questions(resource_id):
-    userobj = tk.g.userobj
+    metabase_mapping = {
+        'collection_ids': collection_ids
+    }
     try:
+        userobj = tk.g.userobj
         metabase_mapping = tk.get_action('metabase_mapping_show')({'ignore_auth': True}, {'user_id': userobj.id})
-    except tk.ObjectNotFound:
-        # If no mapping exists, use default values
-        metabase_mapping = {
-            'platform_uuid': None,
-            'group_ids': group_ids,
-            'collection_ids': collection_ids
-        }
+    except Exception:
+        pass
     matching_cards = []
     card_results = metabase_get_request(f'{METABASE_SITE_URL}/api/card?f=database&model_id={METABASE_DB_ID}')
     if not card_results:
@@ -277,16 +283,14 @@ def get_metabase_sql_questions(resource_id):
 
 
 def get_metabase_collection_items(model_type):
-    userobj = tk.g.userobj
+    metabase_mapping = {
+        'collection_ids': collection_ids
+    }
     try:
+        userobj = tk.g.userobj
         metabase_mapping = tk.get_action('metabase_mapping_show')({'ignore_auth': True}, {'user_id': userobj.id})
-    except tk.ObjectNotFound:
-        # If no mapping exists, use default values
-        metabase_mapping = {
-            'platform_uuid': None,
-            'group_ids': group_ids,
-            'collection_ids': collection_ids
-        }
+    except Exception:
+        pass
     collection_items = []
     if model_type not in ['dashboard', 'card']:
         return collection_items

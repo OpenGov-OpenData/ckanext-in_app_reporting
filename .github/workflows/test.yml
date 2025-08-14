@@ -1,5 +1,7 @@
 name: Tests
 on: [push, pull_request]
+env:
+  CODE_COVERAGE_THRESHOLD_REQUIRED: 90
 jobs:
   lint:
     runs-on: ubuntu-latest
@@ -59,9 +61,11 @@ jobs:
         pip install -r requirements.txt
         pip install -r dev-requirements.txt
         pip install -e .
-    - name: Setup extension
-      run: |
         # Replace default path to CKAN core config file with the one on the container
         sed -i -e 's/use = config:.*/use = config:\/srv\/app\/src\/ckan\/test-core.ini/' test.ini
+    - name: Setup extension
+      run: |
+        ckan -c test.ini db init
+        ckan -c test.ini db upgrade -p in_app_reporting
     - name: Run tests
-      run: pytest --ckan-ini=test.ini --cov=ckanext.in_app_reporting --disable-warnings ckanext/in_app_reporting
+      run: pytest --ckan-ini=test.ini --cov=ckanext.in_app_reporting --disable-warnings --cov-fail-under=${CODE_COVERAGE_THRESHOLD_REQUIRED} ckanext/in_app_reporting
