@@ -20,8 +20,8 @@ def metabase():
 
 @metabase.command()
 @click.argument(u"user_id", required=True)
-@click.option(u'--group_ids', default=[], multiple=True, required=True, help=u'List of group IDs')
-@click.option(u'--collection_ids', default=[], multiple=True, required=True, help=u'List of collection IDs')
+@click.option(u'--group_ids', required=True, help=u'List of group IDs delimited by ";;"')
+@click.option(u'--collection_ids', required=True, help=u'List of collection IDs delimited by ";;"')
 def add(user_id, group_ids, collection_ids):
     '''
         Create new user metabase_mapping

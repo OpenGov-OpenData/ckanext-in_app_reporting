@@ -1,5 +1,5 @@
-include README.rst
-include LICENSE
-include requirements.txt
-recursive-include ckanext/in_app_reporting *.html *.json *.js *.less *.css *.mo *.yml
-recursive-include ckanext/in_app_reporting/migration *.ini *.py *.mako
+recursive-include ckanext/in_app_reporting/templates *
+recursive-include ckanext/in_app_reporting/assets *
+recursive-include ckanext/in_app_reporting/public *
+recursive-include ckanext/in_app_reporting/i18n *
+recursive-include ckanext/in_app_reporting/migration *

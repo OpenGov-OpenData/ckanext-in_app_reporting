@@ -93,8 +93,8 @@ class MetabaseCardViewPlugin(plugins.SingletonPlugin):
     def info(self):
         return {
             'name': 'metabase_card_view',
-            'title': 'Embed Question',
-            'default_title': 'Question',
+            'title': 'Insights (Chart)',
+            'default_title': 'Chart',
             'icon': 'bar-chart',
             'always_available': False,
             'iframed': True,
@@ -107,7 +107,7 @@ class MetabaseCardViewPlugin(plugins.SingletonPlugin):
         }
 
     def can_view(self, data_dict):
-        if not toolkit.g.userobj.sysadmin:
+        if not utils.is_metabase_sso_user(toolkit.g.userobj):
             return False
         resource = data_dict['resource']
         return resource.get('datastore_active', False)
@@ -138,7 +138,7 @@ class MetabaseDashboardViewPlugin(plugins.SingletonPlugin):
     def info(self):
         return {
             'name': 'metabase_dashboard_view',
-            'title': 'Embed Dashboard',
+            'title': 'Insights (Dashboard)',
             'default_title': 'Dashboard',
             'icon': 'bar-chart',
             'always_available': False,
@@ -153,7 +153,7 @@ class MetabaseDashboardViewPlugin(plugins.SingletonPlugin):
         }
 
     def can_view(self, data_dict):
-        if not toolkit.g.userobj.sysadmin:
+        if not utils.is_metabase_sso_user(toolkit.g.userobj):
             return False
         resource = data_dict['resource']
         return resource.get('datastore_active', False)

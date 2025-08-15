@@ -5,7 +5,7 @@
 
 {% set embeddable_cards = h.get_metabase_embeddable('card') %}
 
-{% if g.userobj.sysadmin %}
+{% if h.is_metabase_sso_user(g.userobj) %}
 <div class="row">
   <div class="span12 col-md-12">
     {% set
@@ -18,7 +18,7 @@
     {{ form.input(
       'entity_id',
       id='field-entity_id',
-      label=_('Card'),
+      label=_('Chart'),
       value=data.entity_id,
       error=errors.entity_id,
       is_required=true,

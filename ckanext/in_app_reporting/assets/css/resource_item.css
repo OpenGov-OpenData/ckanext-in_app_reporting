@@ -1,0 +1,23 @@
+.resource-item .btn-group {
+    position: sticky;
+}
+.dropdown-menu {
+    min-width: 140px;
+}
+.dropdown-menu>li>a {
+    min-width: 140px;
+    padding: 3px 10px;
+}
+.resource-item:has(.dropdown.open) {
+    z-index: 1050;
+}
+@media (min-width: 990px) {
+    .resource-item {
+        padding-right: 240px;
+    }
+}
+@media (max-width: 991px) {
+    .resource-item .actions {
+        display: none;
+    }
+}
