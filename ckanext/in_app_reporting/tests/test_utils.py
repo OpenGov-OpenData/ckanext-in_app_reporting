@@ -608,4 +608,398 @@ class TestMetabaseMappingUtils:
         with pytest.raises(toolkit.ObjectNotFound) as exc_info:
             utils.metabase_mapping_delete(data_dict)
 
-        assert f'No mapping found for user_id {user["id"]}' in str(exc_info.value) 
+        assert f'No mapping found for user_id {user["id"]}' in str(exc_info.value)
+
+
+@pytest.mark.usefixtures("with_plugins", "clean_db")
+@pytest.mark.ckan_config("ckan.plugins", "in_app_reporting")
+class TestGetMetabaseChartList:
+    """Test get_metabase_chart_list function"""
+
+    @mock.patch('ckanext.in_app_reporting.utils.metabase_get_request')
+    def test_get_metabase_chart_list_with_table_id_match(self, mock_get_request):
+        """Test get_metabase_chart_list with cards matching table_id"""
+        mock_get_request.return_value = [
+            {
+                'id': 1,
+                'entity_id': 'card-1',
+                'name': 'Chart A',
+                'type': 'question',
+                'updated_at': '2025-08-01T18:20:49.005658Z',
+                'collection_id': 1,
+                'table_id': 123,
+                'dataset_query': {
+                    'native': {
+                        'query': 'SELECT * FROM table_123'
+                    }
+                }
+            },
+            {
+                'id': 2,
+                'entity_id': 'card-2',
+                'name': 'Chart B',
+                'type': 'question',
+                'updated_at': '2025-08-02T18:20:49.005658Z',
+                'collection_id': 2,
+                'table_id': 456,
+                'dataset_query': {
+                    'native': {
+                        'query': 'SELECT * FROM table_456'
+                    }
+                }
+            },
+            {
+                'id': 3,
+                'entity_id': 'card-3',
+                'name': 'Chart C',
+                'type': 'question',
+                'updated_at': '2025-08-03T18:20:49.005658Z',
+                'collection_id': 1,
+                'table_id': 123,
+                'dataset_query': {
+                    'native': {
+                        'query': 'SELECT * FROM table_123'
+                    }
+                }
+            }
+        ]
+
+        with mock.patch('ckanext.in_app_reporting.utils.METABASE_SITE_URL', 'https://example.com'), \
+             mock.patch('ckanext.in_app_reporting.utils.METABASE_DB_ID', '4'), \
+             mock.patch('ckanext.in_app_reporting.utils.collection_ids', ['1', '2']), \
+             mock.patch('ckan.plugins.toolkit.get_action') as mock_get_action:
+            
+            mock_get_action.return_value.side_effect = toolkit.ObjectNotFound()
+
+            result = utils.get_metabase_chart_list(123, 'resource-123')
+
+        mock_get_request.assert_called_once_with('https://example.com/api/card?f=database&model_id=4')
+        assert len(result) == 2
+        assert result[0]['id'] == 3  # Sorted by updated_at desc, then name
+        assert result[0]['name'] == 'Chart C'
+        assert result[1]['id'] == 1
+        assert result[1]['name'] == 'Chart A'
+
+    @mock.patch('ckanext.in_app_reporting.utils.metabase_get_request')
+    def test_get_metabase_chart_list_with_resource_id_match(self, mock_get_request):
+        """Test get_metabase_chart_list with cards matching resource_id in SQL query"""
+        mock_get_request.return_value = [
+            {
+                'id': 1,
+                'entity_id': 'card-1',
+                'name': 'SQL Chart A',
+                'type': 'question',
+                'updated_at': '2025-08-01T18:20:49.005658Z',
+                'collection_id': 1,
+                'table_id': None,
+                'dataset_query': {
+                    'native': {
+                        'query': 'SELECT * FROM "resource-123" WHERE status = "active"'
+                    }
+                }
+            },
+            {
+                'id': 2,
+                'entity_id': 'card-2',
+                'name': 'SQL Chart B',
+                'type': 'question',
+                'updated_at': '2025-08-02T18:20:49.005658Z',
+                'collection_id': 2,
+                'table_id': None,
+                'dataset_query': {
+                    'native': {
+                        'query': 'SELECT * FROM "resource-456" WHERE status = "active"'
+                    }
+                }
+            },
+            {
+                'id': 3,
+                'entity_id': 'card-3',
+                'name': 'SQL Chart C',
+                'type': 'question',
+                'updated_at': '2025-08-03T18:20:49.005658Z',
+                'collection_id': 1,
+                'table_id': None,
+                'dataset_query': {
+                    'native': {
+                        'query': 'SELECT COUNT(*) FROM "resource-123" GROUP BY category'
+                    }
+                }
+            }
+        ]
+
+        with mock.patch('ckanext.in_app_reporting.utils.METABASE_SITE_URL', 'https://example.com'), \
+             mock.patch('ckanext.in_app_reporting.utils.METABASE_DB_ID', '4'), \
+             mock.patch('ckanext.in_app_reporting.utils.collection_ids', ['1', '2']), \
+             mock.patch('ckan.plugins.toolkit.get_action') as mock_get_action:
+            
+            mock_get_action.return_value.side_effect = toolkit.ObjectNotFound()
+
+            result = utils.get_metabase_chart_list(123, 'resource-123')
+
+        mock_get_request.assert_called_once_with('https://example.com/api/card?f=database&model_id=4')
+        assert len(result) == 2
+        assert result[0]['id'] == 3  # Sorted by updated_at desc, then name
+        assert result[0]['name'] == 'SQL Chart C'
+        assert result[1]['id'] == 1
+        assert result[1]['name'] == 'SQL Chart A'
+
+    @mock.patch('ckanext.in_app_reporting.utils.metabase_get_request')
+    def test_get_metabase_chart_list_no_api_response(self, mock_get_request):
+        """Test get_metabase_chart_list when API returns no response"""
+        mock_get_request.return_value = None
+
+        with mock.patch('ckanext.in_app_reporting.utils.METABASE_SITE_URL', 'https://example.com'), \
+             mock.patch('ckanext.in_app_reporting.utils.METABASE_DB_ID', '4'), \
+             mock.patch('ckanext.in_app_reporting.utils.collection_ids', ['1', '2']), \
+             mock.patch('ckan.plugins.toolkit.get_action') as mock_get_action:
+            
+            mock_get_action.return_value.side_effect = toolkit.ObjectNotFound()
+
+            result = utils.get_metabase_chart_list(123, 'resource-123')
+
+        mock_get_request.assert_called_once_with('https://example.com/api/card?f=database&model_id=4')
+        assert result == []
+
+    @mock.patch('ckanext.in_app_reporting.utils.metabase_get_request')
+    def test_get_metabase_chart_list_empty_response(self, mock_get_request):
+        """Test get_metabase_chart_list when API returns empty list"""
+        mock_get_request.return_value = []
+
+        with mock.patch('ckanext.in_app_reporting.utils.METABASE_SITE_URL', 'https://example.com'), \
+             mock.patch('ckanext.in_app_reporting.utils.METABASE_DB_ID', '4'), \
+             mock.patch('ckanext.in_app_reporting.utils.collection_ids', ['1', '2']), \
+             mock.patch('ckan.plugins.toolkit.get_action') as mock_get_action:
+            
+            mock_get_action.return_value.side_effect = toolkit.ObjectNotFound()
+
+            result = utils.get_metabase_chart_list(123, 'resource-123')
+
+        mock_get_request.assert_called_once_with('https://example.com/api/card?f=database&model_id=4')
+        assert result == []
+
+    @mock.patch('ckanext.in_app_reporting.utils.metabase_get_request')
+    def test_get_metabase_chart_list_filters_by_collection_and_type(self, mock_get_request):
+        """Test get_metabase_chart_list filters by collection_id and type='question'"""
+        mock_get_request.return_value = [
+            {
+                'id': 1,
+                'entity_id': 'card-1',
+                'name': 'Question Chart',
+                'type': 'question',
+                'updated_at': '2025-08-01T18:20:49.005658Z',
+                'collection_id': 1,
+                'table_id': 123,
+                'dataset_query': {
+                    'native': {
+                        'query': 'SELECT * FROM table_123'
+                    }
+                }
+            },
+            {
+                'id': 2,
+                'entity_id': 'card-2',
+                'name': 'Model Chart',
+                'type': 'model',  # Should be filtered out
+                'updated_at': '2025-08-02T18:20:49.005658Z',
+                'collection_id': 1,
+                'table_id': 123,
+                'dataset_query': {
+                    'native': {
+                        'query': 'SELECT * FROM table_123'
+                    }
+                }
+            },
+            {
+                'id': 3,
+                'entity_id': 'card-3',
+                'name': 'Other Collection Chart',
+                'type': 'question',
+                'updated_at': '2025-08-03T18:20:49.005658Z',
+                'collection_id': 3,  # Not in allowed collections
+                'table_id': 123,
+                'dataset_query': {
+                    'native': {
+                        'query': 'SELECT * FROM table_123'
+                    }
+                }
+            }
+        ]
+
+        with mock.patch('ckanext.in_app_reporting.utils.METABASE_SITE_URL', 'https://example.com'), \
+             mock.patch('ckanext.in_app_reporting.utils.METABASE_DB_ID', '4'), \
+             mock.patch('ckanext.in_app_reporting.utils.collection_ids', ['1', '2']), \
+             mock.patch('ckan.plugins.toolkit.get_action') as mock_get_action:
+            
+            mock_get_action.return_value.side_effect = toolkit.ObjectNotFound()
+
+            result = utils.get_metabase_chart_list(123, 'resource-123')
+
+        mock_get_request.assert_called_once_with('https://example.com/api/card?f=database&model_id=4')
+        assert len(result) == 1
+        assert result[0]['id'] == 1
+        assert result[0]['name'] == 'Question Chart'
+        assert result[0]['type'] == 'question'
+
+    @mock.patch('ckanext.in_app_reporting.utils.metabase_get_request')
+    def test_get_metabase_chart_list_sorts_by_updated_at_and_name(self, mock_get_request):
+        """Test get_metabase_chart_list sorts by updated_at desc, then name"""
+        mock_get_request.return_value = [
+            {
+                'id': 1,
+                'entity_id': 'card-1',
+                'name': 'Z Chart',
+                'type': 'question',
+                'updated_at': '2025-08-01T18:20:49.005658Z',
+                'collection_id': 1,
+                'table_id': 123,
+                'dataset_query': {
+                    'native': {
+                        'query': 'SELECT * FROM table_123'
+                    }
+                }
+            },
+            {
+                'id': 2,
+                'entity_id': 'card-2',
+                'name': 'A Chart',
+                'type': 'question',
+                'updated_at': '2025-08-03T18:20:48.004547Z',  # Most recent
+                'collection_id': 1,
+                'table_id': 123,
+                'dataset_query': {
+                    'native': {
+                        'query': 'SELECT * FROM table_123'
+                    }
+                }
+            },
+            {
+                'id': 3,
+                'entity_id': 'card-3',
+                'name': 'B Chart',
+                'type': 'question',
+                'updated_at': '2025-08-03T18:20:30.005658Z',  # After card 2
+                'collection_id': 1,
+                'table_id': 123,
+                'dataset_query': {
+                    'native': {
+                        'query': 'SELECT * FROM table_123'
+                    }
+                }
+            }
+        ]
+
+        with mock.patch('ckanext.in_app_reporting.utils.METABASE_SITE_URL', 'https://example.com'), \
+             mock.patch('ckanext.in_app_reporting.utils.METABASE_DB_ID', '4'), \
+             mock.patch('ckanext.in_app_reporting.utils.collection_ids', ['1', '2']), \
+             mock.patch('ckan.plugins.toolkit.get_action') as mock_get_action:
+            
+            mock_get_action.return_value.side_effect = toolkit.ObjectNotFound()
+
+            result = utils.get_metabase_chart_list(123, 'resource-123')
+
+        mock_get_request.assert_called_once_with('https://example.com/api/card?f=database&model_id=4')
+        assert len(result) == 3
+        # Should be sorted by updated_at desc, then name asc
+        assert result[0]['id'] == 2  # Most recent, name 'A Chart'
+        assert result[1]['id'] == 3  # Same time, name 'B Chart'
+        assert result[2]['id'] == 1  # Older time, name 'Z Chart'
+
+    @mock.patch('ckanext.in_app_reporting.utils.metabase_get_request')
+    def test_get_metabase_chart_list_mixed_table_and_sql_matches(self, mock_get_request):
+        """Test get_metabase_chart_list with both table_id and resource_id matches"""
+        mock_get_request.return_value = [
+            {
+                'id': 1,
+                'entity_id': 'card-1',
+                'name': 'Table Match Chart',
+                'type': 'question',
+                'updated_at': '2025-08-01T18:20:49.005658Z',
+                'collection_id': 1,
+                'table_id': 123,
+                'dataset_query': {
+                    'native': {
+                        'query': 'SELECT * FROM table_123'
+                    }
+                }
+            },
+            {
+                'id': 2,
+                'entity_id': 'card-2',
+                'name': 'SQL Match Chart',
+                'type': 'question',
+                'updated_at': '2025-08-02T18:20:49.005658Z',
+                'collection_id': 1,
+                'table_id': None,
+                'dataset_query': {
+                    'native': {
+                        'query': 'SELECT * FROM "resource-123" WHERE status = "active"'
+                    }
+                }
+            },
+            {
+                'id': 3,
+                'entity_id': 'card-3',
+                'name': 'No Match Chart',
+                'type': 'question',
+                'updated_at': '2025-08-03T18:20:49.005658Z',
+                'collection_id': 1,
+                'table_id': 456,  # Different table_id
+                'dataset_query': {
+                    'native': {
+                        'query': 'SELECT * FROM "resource-456" WHERE status = "active"'  # Different resource
+                    }
+                }
+            }
+        ]
+
+        with mock.patch('ckanext.in_app_reporting.utils.METABASE_SITE_URL', 'https://example.com'), \
+             mock.patch('ckanext.in_app_reporting.utils.METABASE_DB_ID', '4'), \
+             mock.patch('ckanext.in_app_reporting.utils.collection_ids', ['1', '2']), \
+             mock.patch('ckan.plugins.toolkit.get_action') as mock_get_action:
+            
+            mock_get_action.return_value.side_effect = toolkit.ObjectNotFound()
+
+            result = utils.get_metabase_chart_list(123, 'resource-123')
+
+        mock_get_request.assert_called_once_with('https://example.com/api/card?f=database&model_id=4')
+        assert len(result) == 2
+        # Should be sorted by updated_at desc, then name asc
+        assert result[0]['id'] == 2  # SQL Match Chart
+        assert result[0]['name'] == 'SQL Match Chart'
+        assert result[1]['id'] == 1  # Table Match Chart
+        assert result[1]['name'] == 'Table Match Chart'
+
+    @mock.patch('ckanext.in_app_reporting.utils.metabase_get_request')
+    def test_get_metabase_chart_list_includes_text_field(self, mock_get_request):
+        """Test get_metabase_chart_list includes 'text' field in returned cards"""
+        mock_get_request.return_value = [
+            {
+                'id': 1,
+                'entity_id': 'card-1',
+                'name': 'Test Chart',
+                'type': 'question',
+                'updated_at': '2025-08-01T18:20:49.005658Z',
+                'collection_id': 1,
+                'table_id': 123,
+                'dataset_query': {
+                    'native': {
+                        'query': 'SELECT * FROM table_123'
+                    }
+                }
+            }
+        ]
+
+        with mock.patch('ckanext.in_app_reporting.utils.METABASE_SITE_URL', 'https://example.com'), \
+             mock.patch('ckanext.in_app_reporting.utils.METABASE_DB_ID', '4'), \
+             mock.patch('ckanext.in_app_reporting.utils.collection_ids', ['1', '2']), \
+             mock.patch('ckan.plugins.toolkit.get_action') as mock_get_action:
+            
+            mock_get_action.return_value.side_effect = toolkit.ObjectNotFound()
+
+            result = utils.get_metabase_chart_list(123, 'resource-123')
+
+        mock_get_request.assert_called_once_with('https://example.com/api/card?f=database&model_id=4')
+        assert len(result) == 1
+        assert result[0]['text'] == 'Test Chart'  # Should include text field
+        assert result[0]['name'] == 'Test Chart'

@@ -174,6 +174,27 @@ class MetabaseView(MethodView):
         except tk.NotAuthorized:
             tk.abort(404, tk._(u'Resource not found'))
 
+    def chart_list(resource_id):
+        if not utils.is_metabase_sso_user(tk.g.userobj):
+            tk.abort(404, tk._(u'Resource not found'))
+        try:
+            context = {
+                u'model': model,
+                u'user': tk.g.user,
+                u'auth_user_obj': tk.g.userobj
+            }
+            tk.check_access('metabase_embed', context, {})
+            resource = tk.get_action('resource_show')(None, {'id': resource_id})
+
+            table_id = utils.get_metabase_table_id(resource_id)
+            chart_list = utils.get_metabase_chart_list(table_id, resource_id)
+            data = {
+                'results': chart_list
+            }
+            return data
+        except (tk.ObjectNotFound, tk.NotAuthorized):
+            tk.abort(404, tk._('Resource not found'))
+
 
 metabase.add_url_rule(
     u'/insights',
@@ -202,5 +223,11 @@ metabase.add_url_rule(
 metabase.add_url_rule(
     u'/metabase/collection_items_list/<string:model_type>',
     view_func=MetabaseView.get_metabase_collection_items,
+    methods=[u'GET']
+)
+
+metabase.add_url_rule(
+    u'/metabase/chart_list/<resource_id>',
+    view_func=MetabaseView.chart_list,
     methods=[u'GET']
 )
