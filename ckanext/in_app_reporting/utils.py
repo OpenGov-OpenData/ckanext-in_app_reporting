@@ -257,6 +257,15 @@ def get_metabase_cards_by_table_id(table_id):
 
 
 def get_metabase_sql_questions(resource_id):
+    """
+    Get Metabase SQL questions that reference a specific resource ID.
+
+    Args:
+        resource_id: The CKAN resource ID to search for in Metabase SQL queries
+
+    Returns:
+        List of dictionaries containing question information (id, name, type, updated_at)
+    """
     metabase_mapping = {
         'collection_ids': collection_ids
     }
@@ -283,6 +292,15 @@ def get_metabase_sql_questions(resource_id):
 
 
 def get_metabase_collection_items(model_type):
+    """
+    Get Metabase items of a specific model type from specific collections.
+
+    Args:
+        model_type: The Metabase model type (dashboard or card)
+
+    Returns:
+        List of dictionaries containing item information (id, name, type, updated_at)
+    """
     metabase_mapping = {
         'collection_ids': collection_ids
     }
@@ -305,6 +323,53 @@ def get_metabase_collection_items(model_type):
             collection_items.append(item)
     collection_items.sort(key=lambda item: (item['last-edit-info']['timestamp']), reverse=True)
     return collection_items
+
+
+def get_metabase_chart_list(table_id, resource_id):
+    """
+    Get Metabase questions that reference a specific table and resource ID.
+
+    Args:
+        table_id: The Metabase table ID
+        resource_id: The CKAN resource ID
+
+    Returns:
+        List of dictionaries containing question information (id, name, type, updated_at)
+    """
+    metabase_mapping = {
+        'collection_ids': collection_ids
+    }
+    try:
+        userobj = tk.g.userobj
+        metabase_mapping = tk.get_action('metabase_mapping_show')({'ignore_auth': True}, {'user_id': userobj.id})
+    except Exception:
+        pass
+    matching_cards = []
+    card_results = metabase_get_request(f'{METABASE_SITE_URL}/api/card?f=database&model_id={METABASE_DB_ID}')
+    if not card_results:
+        return matching_cards
+    for card in card_results:
+        if str(card.get('collection_id')) in metabase_mapping['collection_ids']:
+            if card.get('table_id') == table_id and card.get('type') == 'question':
+                matching_cards.append({
+                    'id': card.get('id'),
+                    'entity_id': card.get('entity_id'),
+                    'name': card.get('name'),
+                    'type': card.get('type'),
+                    'updated_at': card.get('updated_at'),
+                    'text': card.get('name')
+                })
+            elif not card.get('table_id') and resource_id in card.get('dataset_query', {}).get('native',{}).get('query', ''):
+                matching_cards.append({
+                    'id': card.get('id'),
+                    'entity_id': card.get('entity_id'),
+                    'name': card.get('name'),
+                    'type': card.get('type'),
+                    'updated_at': card.get('updated_at'),
+                    'text': card.get('name')
+                })
+    matching_cards.sort(key=lambda card: (card['updated_at']), reverse=True)
+    return matching_cards
 
 
 def metabase_mapping_create(data_dict):

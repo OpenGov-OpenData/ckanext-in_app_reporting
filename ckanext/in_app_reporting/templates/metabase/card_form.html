@@ -8,23 +8,43 @@
 {% if h.is_metabase_sso_user(g.userobj) %}
 <div class="row">
   <div class="span12 col-md-12">
-    {% set
-      entity_id_attrs = {
-        'data-module': 'get-metabase-collection-items',
-        'data-module-source': '/metabase/collection_items_list/card',
-        'data-embeddable': embeddable_cards
-      }
-    %}
-    {{ form.input(
-      'entity_id',
-      id='field-entity_id',
-      label=_('Chart'),
-      value=data.entity_id,
-      error=errors.entity_id,
-      is_required=true,
-      classes=['control-full'],
-      attrs=entity_id_attrs
-      ) }}
+    <!-- Loading state -->
+    <div id="chart-loading" class="control-group">
+      <label class="control-label">{{ _('Chart') }}</label>
+      <div class="controls">
+        <div class="loading-spinner">
+          <div class="spinner-circle"></div>
+          <span class="loading-text">{{ _('Loading Charts') }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Chart selection input (initially hidden) -->
+    <div id="chart-selection" style="display:none;">
+      {% set
+        entity_id_attrs = {
+          'data-module': 'get-metabase-chart-list',
+          'data-module-source': '/metabase/chart_list/' + resource.id,
+          'data-embeddable': embeddable_cards
+        }
+      %}
+      {{ form.input(
+        'entity_id',
+        id='field-entity_id',
+        label=_('Chart'),
+        value=data.entity_id,
+        error=errors.entity_id,
+        is_required=true,
+        classes=['control-full'],
+        attrs=entity_id_attrs
+        ) }}
+    </div>
+
+    <!-- Error state (initially hidden) -->
+    <div id="chart-error" class="alert alert-error" style="display:none;">
+      <p>{{ _('Failed to load charts.') }}</p>
+    </div>
+
     <div id="publish-warning" class="alert fade in alert-warning" style="display:none"></div>
     {{ form.checkbox(
       'bordered',

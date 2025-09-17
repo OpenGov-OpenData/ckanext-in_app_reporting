@@ -1,5 +1,5 @@
 globalThis.cardId = null;
-ckan.module('get-metabase-collection-items', function (jQuery) {
+ckan.module('get-metabase-chart-list', function (jQuery) {
     return {
         initialize: function () {
             const that = this;
@@ -9,11 +9,19 @@ ckan.module('get-metabase-collection-items', function (jQuery) {
             $.getJSON(this.options.source, function (data) {
                 that.collection_items = data.results;
                 that.setup();
+                // Hide spinner and show select2 dropdown
+                $('#chart-loading').hide();
+                $('#chart-selection').show();
+            }).fail(function() {
+                // Show error state if loading fails
+                $('#chart-loading').hide();
+                $('#chart-selection').show();
+                $('#chart-error').show();
             });
         },
 
         formatResult: function (result) {
-            var date = (new Date(result['last-edit-info']['timestamp']));
+            var date = (new Date(result['updated_at']));
             var markup = "<div class='metabase-result'><span class='title'>" + result.name + "</span><span class='modified'>Modified " + date.toLocaleString() + "</span></div>";
             return markup;
         },
