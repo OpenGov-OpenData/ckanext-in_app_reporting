@@ -68,6 +68,27 @@ def user_is_admin_or_editor(user):
     return False
 
 
+def parse_metabase_datetime(datetime_str):
+    """
+    Parse Metabase ISO datetime string to Python datetime object.
+    
+    Args:
+        datetime_str: ISO format string like '2025-12-05T21:53:59.584864Z'
+    
+    Returns:
+        datetime object or None if parsing fails
+    """
+    if not datetime_str:
+        return None
+    try:
+        # Replace 'Z' with '+00:00' for timezone-aware parsing
+        if datetime_str.endswith('Z'):
+            datetime_str = datetime_str[:-1] + '+00:00'
+        return datetime.datetime.fromisoformat(datetime_str)
+    except (ValueError, AttributeError):
+        return None
+
+
 def metabase_get_request(url):
     headers = {'x-api-key': METABASE_API_KEY}
     try:
@@ -423,7 +444,7 @@ def get_metabase_user_created_cards(user_email: str) -> list:
             if not creator:
                 return None
 
-            creator_email = creator.get('email', '').lower().strip() if creator.get('email') else None
+            creator_email = creator.get('email', '').strip() if creator.get('email') else None
             if creator_email and creator_email == user_email:
                 return {
                     'id': full_item.get('id'),
@@ -431,8 +452,8 @@ def get_metabase_user_created_cards(user_email: str) -> list:
                     'description': full_item.get('description'),
                     'type': full_item.get('type'),
                     'display': full_item.get('display'),
-                    'created_at': full_item.get('created_at'),
-                    'updated_at': full_item.get('updated_at'),
+                    'created_at': parse_metabase_datetime(full_item.get('created_at')),
+                    'updated_at': parse_metabase_datetime(full_item.get('updated_at')),
                     'creator_id': full_item.get('creator_id')
                 }
             return None
@@ -587,8 +608,8 @@ def get_metabase_user_created_dashboards(user_email: str) -> list:
                     'id': full_item.get('id'),
                     'name': full_item.get('name'),
                     'description': full_item.get('description'),
-                    'created_at': full_item.get('created_at'),
-                    'updated_at': full_item.get('updated_at'),
+                    'created_at': parse_metabase_datetime(full_item.get('created_at')),
+                    'updated_at': parse_metabase_datetime(full_item.get('updated_at')),
                     'creator_id': full_item.get('creator_id')
                 }
             return None

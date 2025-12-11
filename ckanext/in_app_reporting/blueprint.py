@@ -231,6 +231,54 @@ class MetabaseView(MethodView):
         except (tk.NotAuthorized, tk.ValidationError):
             tk.abort(404, tk._('Resource not found'))
 
+    def user_created_cards_page():
+        """Render HTML page listing user-created cards."""
+        if not utils.is_metabase_sso_user(tk.g.userobj):
+            tk.abort(404, tk._(u'Resource not found'))
+        try:
+            context = {
+                u'model': model,
+                u'user': tk.g.user,
+                u'auth_user_obj': tk.g.userobj
+            }
+            tk.check_access('metabase_user_created_cards_list', context, {})
+            cards = tk.get_action('metabase_user_created_cards_list')(context, {})
+            user_dict = tk.get_action('user_show')(context, {'id': tk.g.userobj.id})
+            return tk.render(
+                u'user/dashboard_charts.html',
+                extra_vars={
+                    'cards': cards if cards else [],
+                    'user': tk.g.user,
+                    'user_dict': user_dict
+                }
+            )
+        except (tk.NotAuthorized, tk.ValidationError):
+            tk.abort(404, tk._('Resource not found'))
+
+    def user_created_dashboards_page():
+        """Render HTML page listing user-created dashboards."""
+        if not utils.is_metabase_sso_user(tk.g.userobj):
+            tk.abort(404, tk._(u'Resource not found'))
+        try:
+            context = {
+                u'model': model,
+                u'user': tk.g.user,
+                u'auth_user_obj': tk.g.userobj
+            }
+            tk.check_access('metabase_user_created_dashboards_list', context, {})
+            dashboards = tk.get_action('metabase_user_created_dashboards_list')(context, {})
+            user_dict = tk.get_action('user_show')(context, {'id': tk.g.userobj.id})
+            return tk.render(
+                u'user/dashboard_dashboards.html',
+                extra_vars={
+                    'dashboards': dashboards if dashboards else [],
+                    'user': tk.g.user,
+                    'user_dict': user_dict
+                }
+            )
+        except (tk.NotAuthorized, tk.ValidationError):
+            tk.abort(404, tk._('Resource not found'))
+
 
 metabase.add_url_rule(
     u'/insights',
@@ -278,4 +326,18 @@ metabase.add_url_rule(
     u'/api/metabase/user_created_dashboards',
     view_func=MetabaseView.user_created_dashboards_list,
     methods=[u'GET']
+)
+
+metabase.add_url_rule(
+    u'/dashboard/insights_charts',
+    view_func=MetabaseView.user_created_cards_page,
+    methods=[u'GET'],
+    endpoint='user_created_cards_page'
+)
+
+metabase.add_url_rule(
+    u'/dashboard/insights_dashboards',
+    view_func=MetabaseView.user_created_dashboards_page,
+    methods=[u'GET'],
+    endpoint='user_created_dashboards_page'
 )
