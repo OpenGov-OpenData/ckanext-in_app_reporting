@@ -1,3 +1,4 @@
+import concurrent.futures
 import datetime
 import json
 import jwt
@@ -5,6 +6,7 @@ import re
 import requests
 import time
 import uuid
+from typing import Optional
 import ckan.model as model
 import ckan.plugins.toolkit as tk
 import ckanext.in_app_reporting.config as mb_config
@@ -370,6 +372,310 @@ def get_metabase_chart_list(table_id, resource_id):
                 })
     matching_cards.sort(key=lambda card: (card['updated_at']), reverse=True)
     return matching_cards
+
+
+def get_metabase_user_created_cards(user_email: str) -> list:
+    """
+    Get Metabase cards created by a specific user.
+
+    Uses /api/collection/{collection_id}/items?models=card for server-side filtering,
+    then fetches individual card details in parallel to get creator information.
+
+    Args:
+        user_email: The email address of the user to filter by
+
+    Returns:
+        List of dictionaries containing card information (id, name, description, type, display, created_at, updated_at)
+    """
+    if not user_email:
+        return []
+
+    # Strip whitespace but keep original case
+    user_email = user_email.strip()
+
+    metabase_mapping = {
+        'collection_ids': collection_ids
+    }
+    try:
+        userobj = tk.g.userobj
+        if userobj:
+            metabase_mapping = tk.get_action('metabase_mapping_show')({'ignore_auth': True}, {'user_id': userobj.id})
+    except Exception:
+        pass
+
+    if not metabase_mapping.get('collection_ids'):
+        return []
+
+    max_results = 5
+    page_size = 30  # Number of cards to fetch per page
+    user_created_cards = []
+
+    # Fetch all card details in parallel
+    def fetch_card_details(card_id: int) -> Optional[dict]:
+        """Fetch full card details for a single card."""
+        try:
+            full_item = metabase_get_request(f'{METABASE_SITE_URL}/api/card/{card_id}')
+            if not full_item:
+                return None
+
+            # Check if the creator matches the user's email (case-insensitive)
+            creator = full_item.get('creator')
+            if not creator:
+                return None
+
+            creator_email = creator.get('email', '').lower().strip() if creator.get('email') else None
+            if creator_email and creator_email == user_email:
+                return {
+                    'id': full_item.get('id'),
+                    'name': full_item.get('name'),
+                    'description': full_item.get('description'),
+                    'type': full_item.get('type'),
+                    'display': full_item.get('display'),
+                    'created_at': full_item.get('created_at'),
+                    'updated_at': full_item.get('updated_at'),
+                    'creator_id': full_item.get('creator_id')
+                }
+            return None
+        except (requests.RequestException, KeyError, AttributeError) as e:
+            # Log specific errors but don't fail the entire operation
+            # In a production environment, you might want to log this
+            return None
+
+    # Process each collection with pagination until we have enough results
+    for collection_id in metabase_mapping['collection_ids']:
+        if len(user_created_cards) >= max_results:
+            break
+
+        offset = 0
+        has_more = True
+
+        # Fetch pages until we have enough results or run out of cards
+        while has_more and len(user_created_cards) < max_results:
+            # Fetch a page of cards
+            collection_results = metabase_get_request(
+                f'{METABASE_SITE_URL}/api/collection/{collection_id}/items?models=card&sort_column=last_edited_at&sort_direction=desc&limit={page_size}&offset={offset}')
+            
+            if not collection_results:
+                has_more = False
+                break
+
+            items = collection_results.get('data', [])
+            if not items:
+                has_more = False
+                break
+
+            # Collect card IDs from this page
+            card_ids = []
+            for item in items:
+                item_id = item.get('id')
+                if item_id:
+                    card_ids.append(item_id)
+
+            if not card_ids:
+                has_more = False
+                break
+
+            # Fetch card details in parallel
+            with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+                future_to_card_id = {
+                    executor.submit(fetch_card_details, card_id): card_id
+                    for card_id in card_ids
+                }
+                
+                # Process completed futures
+                for future in concurrent.futures.as_completed(future_to_card_id):
+                    # Early exit if we have enough results
+                    if len(user_created_cards) >= max_results:
+                        # Cancel remaining futures
+                        for remaining_future in future_to_card_id:
+                            if not remaining_future.done():
+                                remaining_future.cancel()
+                        break
+                    
+                    try:
+                        result = future.result()
+                        if result:
+                            user_created_cards.append(result)
+                            # Check again after adding a result
+                            if len(user_created_cards) >= max_results:
+                                # Cancel remaining futures
+                                for remaining_future in future_to_card_id:
+                                    if not remaining_future.done():
+                                        remaining_future.cancel()
+                                break
+                    except concurrent.futures.CancelledError:
+                        continue
+                    except Exception as e:
+                        # Log unexpected errors but don't fail the entire operation
+                        continue
+
+            # Move to next page if we don't have enough results yet
+            if len(user_created_cards) < max_results:
+                # Check if there are more items (if we got fewer than page_size, we're done)
+                if len(items) < page_size:
+                    has_more = False
+                else:
+                    offset += page_size
+            else:
+                has_more = False
+
+    return user_created_cards[:max_results]
+
+
+def get_metabase_user_created_dashboards(user_email: str) -> list:
+    """
+    Get Metabase dashboards created by a specific user.
+
+    Uses /api/collection/{collection_id}/items?models=dashboard for server-side filtering,
+    then fetches individual dashboard details in parallel to get creator information.
+
+    Args:
+        user_email: The email address of the user to filter by
+
+    Returns:
+        List of dictionaries containing dashboard information (id, name, description, created_at, updated_at)
+    """
+    if not user_email:
+        return []
+
+    # Strip whitespace but keep original case
+    user_email = user_email.strip()
+
+    metabase_mapping = {
+        'collection_ids': collection_ids
+    }
+    try:
+        userobj = tk.g.userobj
+        if userobj:
+            metabase_mapping = tk.get_action('metabase_mapping_show')({'ignore_auth': True}, {'user_id': userobj.id})
+    except Exception:
+        pass
+
+    if not metabase_mapping.get('collection_ids'):
+        return []
+
+    # Look up the user ID by email to avoid fetching user details for each dashboard
+    user_id = None
+    user_query_result = metabase_get_request(
+        f'{METABASE_SITE_URL}/api/user?query={user_email}')
+    if user_query_result and len(user_query_result.get('data', [])) > 0:
+        # Get the first matching user
+        user_id = user_query_result['data'][0].get('id')
+
+    max_results = 5
+    page_size = 30  # Number of dashboards to fetch per page
+    user_created_dashboards = []
+
+    # Fetch all dashboard details in parallel
+    def fetch_dashboard_details(dashboard_id: int) -> Optional[dict]:
+        """Fetch full dashboard details for a single dashboard."""
+        try:
+            full_item = metabase_get_request(f'{METABASE_SITE_URL}/api/dashboard/{dashboard_id}')
+            if not full_item:
+                return None
+
+            # Check if the creator matches the user
+            # Dashboards only have 'creator_id', not a 'creator' object
+            creator_id = full_item.get('creator_id')
+
+            # Compare creator_id with the user_id we looked up
+            if not creator_id or not user_id:
+                return None
+
+            if creator_id == user_id:
+                return {
+                    'id': full_item.get('id'),
+                    'name': full_item.get('name'),
+                    'description': full_item.get('description'),
+                    'created_at': full_item.get('created_at'),
+                    'updated_at': full_item.get('updated_at'),
+                    'creator_id': full_item.get('creator_id')
+                }
+            return None
+        except (requests.RequestException, KeyError, AttributeError) as e:
+            # Log specific errors but don't fail the entire operation
+            # In a production environment, you might want to log this
+            return None
+
+    # Process each collection with pagination until we have enough results
+    for collection_id in metabase_mapping['collection_ids']:
+        if len(user_created_dashboards) >= max_results:
+            break
+
+        offset = 0
+        has_more = True
+
+        # Fetch pages until we have enough results or run out of dashboards
+        while has_more and len(user_created_dashboards) < max_results:
+            # Fetch a page of dashboards
+            collection_results = metabase_get_request(
+                f'{METABASE_SITE_URL}/api/collection/{collection_id}/items?models=dashboard&sort_column=last_edited_at&sort_direction=desc&limit={page_size}&offset={offset}')
+            
+            if not collection_results:
+                has_more = False
+                break
+
+            items = collection_results.get('data', [])
+            if not items:
+                has_more = False
+                break
+
+            # Collect dashboard IDs from this page
+            dashboard_ids = []
+            for item in items:
+                item_id = item.get('id')
+                if item_id:
+                    dashboard_ids.append(item_id)
+
+            if not dashboard_ids:
+                has_more = False
+                break
+
+            # Fetch dashboard details in parallel
+            with concurrent.futures.ThreadPoolExecutor(max_workers=10) as executor:
+                future_to_dashboard_id = {
+                    executor.submit(fetch_dashboard_details, dashboard_id): dashboard_id
+                    for dashboard_id in dashboard_ids
+                }
+                
+                # Process completed futures
+                for future in concurrent.futures.as_completed(future_to_dashboard_id):
+                    # Early exit if we have enough results
+                    if len(user_created_dashboards) >= max_results:
+                        # Cancel remaining futures
+                        for remaining_future in future_to_dashboard_id:
+                            if not remaining_future.done():
+                                remaining_future.cancel()
+                        break
+                    
+                    try:
+                        result = future.result()
+                        if result:
+                            user_created_dashboards.append(result)
+                            # Check again after adding a result
+                            if len(user_created_dashboards) >= max_results:
+                                # Cancel remaining futures
+                                for remaining_future in future_to_dashboard_id:
+                                    if not remaining_future.done():
+                                        remaining_future.cancel()
+                                break
+                    except concurrent.futures.CancelledError:
+                        continue
+                    except Exception as e:
+                        # Log unexpected errors but don't fail the entire operation
+                        continue
+
+            # Move to next page if we don't have enough results yet
+            if len(user_created_dashboards) < max_results:
+                # Check if there are more items (if we got fewer than page_size, we're done)
+                if len(items) < page_size:
+                    has_more = False
+                else:
+                    offset += page_size
+            else:
+                has_more = False
+
+    return user_created_dashboards[:max_results]
 
 
 def metabase_mapping_create(data_dict):

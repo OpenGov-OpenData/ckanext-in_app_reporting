@@ -105,3 +105,19 @@ def metabase_model_create(context, data_dict):
         return {'success': True}
 
     return {'success': False}
+
+
+def metabase_user_created_cards_list(context, data_dict):
+    user = context.get('user')
+    userobj = model.User.get(user)
+    if utils.is_metabase_sso_user(userobj):
+        return {'success': True}
+    return {'success': False}
+
+
+def metabase_user_created_dashboards_list(context, data_dict):
+    user = context.get('user')
+    userobj = model.User.get(user)
+    if utils.is_metabase_sso_user(userobj):
+        return {'success': True}
+    return {'success': False}

@@ -44,7 +44,9 @@ class InAppReportingPlugin(plugins.SingletonPlugin):
             'metabase_card_publish': action.metabase_card_publish,
             'metabase_dashboard_publish': action.metabase_dashboard_publish,
             'metabase_model_create': action.metabase_model_create,
-            'metabase_sql_questions_list': action.metabase_sql_questions_list
+            'metabase_sql_questions_list': action.metabase_sql_questions_list,
+            'metabase_user_created_cards_list': action.metabase_user_created_cards_list,
+            'metabase_user_created_dashboards_list': action.metabase_user_created_dashboards_list
         }
 
     # IAuthFunctions
@@ -60,7 +62,9 @@ class InAppReportingPlugin(plugins.SingletonPlugin):
             'metabase_data': auth.metabase_data,
             'metabase_card_publish': auth.metabase_card_publish,
             'metabase_dashboard_publish': auth.metabase_dashboard_publish,
-            'metabase_model_create': auth.metabase_model_create
+            'metabase_model_create': auth.metabase_model_create,
+            'metabase_user_created_cards_list': auth.metabase_user_created_cards_list,
+            'metabase_user_created_dashboards_list': auth.metabase_user_created_dashboards_list
         }
 
     # IBlueprint
