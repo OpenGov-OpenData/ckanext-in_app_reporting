@@ -105,6 +105,68 @@ def metabase_sql_questions_list(context, data_dict):
     return questions
 
 
+@tk.side_effect_free
+def metabase_user_created_cards_list(context, data_dict):
+    """
+    List Metabase cards created by a user.
+
+    Args:
+        email (optional): Email address of the user. If not provided, uses the current user's email.
+
+    Returns:
+        List of dictionaries containing card information (id, name, type, model, updated_at, created_at, creator)
+    """
+    tk.check_access('metabase_user_created_cards_list', context, data_dict)
+
+    # Check if email parameter is provided
+    user_email = data_dict.get('email')
+
+    # If no email provided, use the current user's email
+    if not user_email:
+        userobj = context.get('auth_user_obj') or tk.g.userobj
+        if not userobj:
+            raise tk.NotAuthorized('User not authenticated')
+
+        # Try to get email from userobj - in CKAN, name is often the email for SSO users
+        user_email = getattr(userobj, 'email', None) or userobj.name
+        if not user_email:
+            raise tk.ValidationError({'error': 'User email not found'})
+
+    cards = utils.get_metabase_user_created_cards(user_email)
+    return cards
+
+
+@tk.side_effect_free
+def metabase_user_created_dashboards_list(context, data_dict):
+    """
+    List Metabase dashboards created by a user.
+
+    Args:
+        email (optional): Email address of the user. If not provided, uses the current user's email.
+
+    Returns:
+        List of dictionaries containing dashboard information (id, name, type, updated_at, created_at, creator)
+    """
+    tk.check_access('metabase_user_created_dashboards_list', context, data_dict)
+
+    # Check if email parameter is provided
+    user_email = data_dict.get('email')
+
+    # If no email provided, use the current user's email
+    if not user_email:
+        userobj = context.get('auth_user_obj') or tk.g.userobj
+        if not userobj:
+            raise tk.NotAuthorized('User not authenticated')
+
+        # Try to get email from userobj - in CKAN, name is often the email for SSO users
+        user_email = getattr(userobj, 'email', None) or userobj.name
+        if not user_email:
+            raise tk.ValidationError({'error': 'User email not found'})
+
+    dashboards = utils.get_metabase_user_created_dashboards(user_email)
+    return dashboards
+
+
 def metabase_card_publish(context, data_dict):
     tk.check_access('metabase_card_publish', context, data_dict)
 

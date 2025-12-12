@@ -442,4 +442,252 @@ class TestMetabaseSqlQuestionsList:
              pytest.raises(toolkit.ValidationError) as exc_info:
             call_action('metabase_sql_questions_list', context, **data_dict)
 
-        assert 'Resource ID required' in str(exc_info.value) 
+        assert 'Resource ID required' in str(exc_info.value)
+
+
+@pytest.mark.usefixtures("with_plugins", "clean_db")
+@pytest.mark.ckan_config("ckan.plugins", "in_app_reporting")
+class TestMetabaseUserCreatedCardsList:
+    """Test metabase user created cards listing actions"""
+
+    def test_metabase_user_created_cards_list_with_email(self, mock_metabase_config):
+        """Test listing cards with email parameter"""
+        user = factories.User(email='test@example.com')
+        expected_cards = [
+            {
+                'id': 1,
+                'name': 'Test Card 1',
+                'description': 'Description 1',
+                'type': 'question',
+                'display': 'bar',
+                'created_at': None,
+                'updated_at': None,
+                'creator_id': 123
+            },
+            {
+                'id': 2,
+                'name': 'Test Card 2',
+                'description': 'Description 2',
+                'type': 'question',
+                'display': 'line',
+                'created_at': None,
+                'updated_at': None,
+                'creator_id': 123
+            }
+        ]
+
+        context = {'user': user['name']}
+        data_dict = {'email': 'test@example.com'}
+
+        with mock.patch('ckan.plugins.toolkit.check_access'), \
+             mock.patch('ckanext.in_app_reporting.utils.get_metabase_user_created_cards', return_value=expected_cards):
+            result = call_action('metabase_user_created_cards_list', context, **data_dict)
+
+        assert result == expected_cards
+        assert len(result) == 2
+
+    def test_metabase_user_created_cards_list_without_email(self, mock_metabase_config):
+        """Test listing cards using current user's email"""
+        user = factories.User(email='test@example.com')
+        expected_cards = [
+            {
+                'id': 1,
+                'name': 'Test Card',
+                'description': 'Description',
+                'type': 'question',
+                'display': 'bar',
+                'created_at': None,
+                'updated_at': None,
+                'creator_id': 123
+            }
+        ]
+
+        # Create a mock user object
+        mock_user_obj = mock.Mock()
+        mock_user_obj.email = user.get('email')
+        mock_user_obj.name = user['name']
+
+        context = {
+            'user': user['name'],
+            'auth_user_obj': mock_user_obj
+        }
+        data_dict = {}
+
+        with mock.patch('ckan.plugins.toolkit.check_access'), \
+             mock.patch('ckanext.in_app_reporting.utils.get_metabase_user_created_cards', return_value=expected_cards):
+            result = call_action('metabase_user_created_cards_list', context, **data_dict)
+
+        assert result == expected_cards
+
+    def test_metabase_user_created_cards_list_no_cards(self, mock_metabase_config):
+        """Test listing cards when no cards found"""
+        user = factories.User(email='test@example.com')
+
+        context = {'user': user['name']}
+        data_dict = {'email': 'test@example.com'}
+
+        with mock.patch('ckan.plugins.toolkit.check_access'), \
+             mock.patch('ckanext.in_app_reporting.utils.get_metabase_user_created_cards', return_value=[]):
+            result = call_action('metabase_user_created_cards_list', context, **data_dict)
+
+        assert result == []
+
+    def test_metabase_user_created_cards_list_not_authenticated(self, mock_metabase_config):
+        """Test listing cards when user is not authenticated"""
+        # Set auth_user_obj to None explicitly in context
+        context = {'auth_user_obj': None}
+        data_dict = {}
+
+        # Mock tk.g.userobj to return None without requiring app context
+        mock_g = mock.MagicMock()
+        mock_g.userobj = None
+
+        with mock.patch('ckan.plugins.toolkit.check_access'), \
+             mock.patch('ckanext.in_app_reporting.action.tk.g', mock_g):
+            with pytest.raises(toolkit.NotAuthorized) as exc_info:
+                call_action('metabase_user_created_cards_list', context, **data_dict)
+
+        assert 'User not authenticated' in str(exc_info.value)
+
+    def test_metabase_user_created_cards_list_no_email_found(self, mock_metabase_config):
+        """Test listing cards when user has no email"""
+        user = factories.User()
+        # Create a mock user object without email or name
+        # The action checks: getattr(userobj, 'email', None) or userobj.name
+        # So both need to be falsy to trigger the ValidationError
+        mock_user_obj = mock.Mock()
+        mock_user_obj.email = None
+        mock_user_obj.name = None
+
+        context = {
+            'user': user['name'],
+            'auth_user_obj': mock_user_obj
+        }
+        data_dict = {}
+
+        with mock.patch('ckan.plugins.toolkit.check_access'), \
+             pytest.raises(toolkit.ValidationError) as exc_info:
+            call_action('metabase_user_created_cards_list', context, **data_dict)
+
+        assert 'User email not found' in str(exc_info.value)
+
+
+@pytest.mark.usefixtures("with_plugins", "clean_db")
+@pytest.mark.ckan_config("ckan.plugins", "in_app_reporting")
+class TestMetabaseUserCreatedDashboardsList:
+    """Test metabase user created dashboards listing actions"""
+
+    def test_metabase_user_created_dashboards_list_with_email(self, mock_metabase_config):
+        """Test listing dashboards with email parameter"""
+        user = factories.User(email='test@example.com')
+        expected_dashboards = [
+            {
+                'id': 1,
+                'name': 'Test Dashboard 1',
+                'description': 'Description 1',
+                'created_at': None,
+                'updated_at': None,
+                'creator_id': 123
+            },
+            {
+                'id': 2,
+                'name': 'Test Dashboard 2',
+                'description': 'Description 2',
+                'created_at': None,
+                'updated_at': None,
+                'creator_id': 123
+            }
+        ]
+
+        context = {'user': user['name']}
+        data_dict = {'email': 'test@example.com'}
+
+        with mock.patch('ckan.plugins.toolkit.check_access'), \
+             mock.patch('ckanext.in_app_reporting.utils.get_metabase_user_created_dashboards', return_value=expected_dashboards):
+            result = call_action('metabase_user_created_dashboards_list', context, **data_dict)
+
+        assert result == expected_dashboards
+        assert len(result) == 2
+
+    def test_metabase_user_created_dashboards_list_without_email(self, mock_metabase_config):
+        """Test listing dashboards using current user's email"""
+        user = factories.User(email='test@example.com')
+        expected_dashboards = [
+            {
+                'id': 1,
+                'name': 'Test Dashboard',
+                'description': 'Description',
+                'created_at': None,
+                'updated_at': None,
+                'creator_id': 123
+            }
+        ]
+
+        # Create a mock user object
+        mock_user_obj = mock.Mock()
+        mock_user_obj.email = user.get('email')
+        mock_user_obj.name = user['name']
+
+        context = {
+            'user': user['name'],
+            'auth_user_obj': mock_user_obj
+        }
+        data_dict = {}
+
+        with mock.patch('ckan.plugins.toolkit.check_access'), \
+             mock.patch('ckanext.in_app_reporting.utils.get_metabase_user_created_dashboards', return_value=expected_dashboards):
+            result = call_action('metabase_user_created_dashboards_list', context, **data_dict)
+
+        assert result == expected_dashboards
+
+    def test_metabase_user_created_dashboards_list_no_dashboards(self, mock_metabase_config):
+        """Test listing dashboards when no dashboards found"""
+        user = factories.User(email='test@example.com')
+
+        context = {'user': user['name']}
+        data_dict = {'email': 'test@example.com'}
+
+        with mock.patch('ckan.plugins.toolkit.check_access'), \
+             mock.patch('ckanext.in_app_reporting.utils.get_metabase_user_created_dashboards', return_value=[]):
+            result = call_action('metabase_user_created_dashboards_list', context, **data_dict)
+
+        assert result == []
+
+    def test_metabase_user_created_dashboards_list_not_authenticated(self, mock_metabase_config):
+        """Test listing dashboards when user is not authenticated"""
+        # Set auth_user_obj to None explicitly in context
+        context = {'auth_user_obj': None}
+        data_dict = {}
+
+        # Mock tk.g.userobj to return None without requiring app context
+        mock_g = mock.MagicMock()
+        mock_g.userobj = None
+
+        with mock.patch('ckan.plugins.toolkit.check_access'), \
+             mock.patch('ckanext.in_app_reporting.action.tk.g', mock_g):
+            with pytest.raises(toolkit.NotAuthorized) as exc_info:
+                call_action('metabase_user_created_dashboards_list', context, **data_dict)
+
+        assert 'User not authenticated' in str(exc_info.value)
+
+    def test_metabase_user_created_dashboards_list_no_email_found(self, mock_metabase_config):
+        """Test listing dashboards when user has no email"""
+        user = factories.User()
+        # Create a mock user object without email or name
+        # The action checks: getattr(userobj, 'email', None) or userobj.name
+        # So both need to be falsy to trigger the ValidationError
+        mock_user_obj = mock.Mock()
+        mock_user_obj.email = None
+        mock_user_obj.name = None
+
+        context = {
+            'user': user['name'],
+            'auth_user_obj': mock_user_obj
+        }
+        data_dict = {}
+
+        with mock.patch('ckan.plugins.toolkit.check_access'), \
+             pytest.raises(toolkit.ValidationError) as exc_info:
+            call_action('metabase_user_created_dashboards_list', context, **data_dict)
+
+        assert 'User email not found' in str(exc_info.value) 
