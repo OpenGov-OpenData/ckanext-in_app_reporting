@@ -151,3 +151,153 @@ class TestBlueprint:
 
         # Blueprint should convert 'question' to 'card'
         assert captured['model_type'] == 'card'
+
+    def test_user_created_cards_page_rendered(self, app, mock_is_metabase_sso_user, mock_check_access, monkeypatch):
+        """Test user created cards page is rendered"""
+        user = factories.Sysadmin()
+        expected_cards = [
+            {
+                'id': 1,
+                'name': 'Test Card 1',
+                'description': 'Description 1',
+                'type': 'question',
+                'display': 'bar',
+                'created_at': None,
+                'updated_at': None,
+                'creator_id': 123
+            }
+        ]
+
+        def fake_get_action(name):
+            if name == 'metabase_user_created_cards_list':
+                def cards_list(context, data_dict):
+                    return expected_cards
+                return cards_list
+            if name == 'user_show':
+                def user_show(context, data_dict):
+                    return {'id': user['id'], 'name': user['name'], 'email': user.get('email')}
+                return user_show
+            return toolkit.get_action(name)
+
+        monkeypatch.setattr('ckanext.in_app_reporting.blueprint.tk.get_action', fake_get_action)
+
+        url = url_for('metabase.user_created_cards_page')
+        env = {"REMOTE_USER": user['name'].encode('ascii')}
+
+        response = app.get(url, extra_environ=env)
+
+        assert response.status_code == 200
+        assert 'Recent Insights Charts' in response.body
+        assert 'Test Card 1' in response.body
+
+    def test_user_created_cards_page_no_cards(self, app, mock_is_metabase_sso_user, mock_check_access, monkeypatch):
+        """Test user created cards page when no cards found"""
+        user = factories.Sysadmin()
+
+        def fake_get_action(name):
+            if name == 'metabase_user_created_cards_list':
+                def cards_list(context, data_dict):
+                    return []
+                return cards_list
+            if name == 'user_show':
+                def user_show(context, data_dict):
+                    return {'id': user['id'], 'name': user['name'], 'email': user.get('email')}
+                return user_show
+            return toolkit.get_action(name)
+
+        monkeypatch.setattr('ckanext.in_app_reporting.blueprint.tk.get_action', fake_get_action)
+
+        url = url_for('metabase.user_created_cards_page')
+        env = {"REMOTE_USER": user['name'].encode('ascii')}
+
+        response = app.get(url, extra_environ=env)
+
+        assert response.status_code == 200
+        assert 'You have not created any charts yet' in response.body
+
+    def test_user_created_cards_page_not_sso_user(self, app, mock_check_access, monkeypatch):
+        """Test user created cards page when user is not SSO user"""
+        user = factories.Sysadmin()
+
+        monkeypatch.setattr('ckanext.in_app_reporting.utils.is_metabase_sso_user', lambda u: False)
+
+        url = url_for('metabase.user_created_cards_page')
+        env = {"REMOTE_USER": user['name'].encode('ascii')}
+
+        response = app.get(url, extra_environ=env, expect_errors=True)
+
+        assert response.status_code == 404
+
+    def test_user_created_dashboards_page_rendered(self, app, mock_is_metabase_sso_user, mock_check_access, monkeypatch):
+        """Test user created dashboards page is rendered"""
+        user = factories.Sysadmin()
+        expected_dashboards = [
+            {
+                'id': 1,
+                'name': 'Test Dashboard 1',
+                'description': 'Description 1',
+                'created_at': None,
+                'updated_at': None,
+                'creator_id': 123
+            }
+        ]
+
+        def fake_get_action(name):
+            if name == 'metabase_user_created_dashboards_list':
+                def dashboards_list(context, data_dict):
+                    return expected_dashboards
+                return dashboards_list
+            if name == 'user_show':
+                def user_show(context, data_dict):
+                    return {'id': user['id'], 'name': user['name'], 'email': user.get('email')}
+                return user_show
+            return toolkit.get_action(name)
+
+        monkeypatch.setattr('ckanext.in_app_reporting.blueprint.tk.get_action', fake_get_action)
+
+        url = url_for('metabase.user_created_dashboards_page')
+        env = {"REMOTE_USER": user['name'].encode('ascii')}
+
+        response = app.get(url, extra_environ=env)
+
+        assert response.status_code == 200
+        assert 'Recent Insights Dashboards' in response.body
+        assert 'Test Dashboard 1' in response.body
+
+    def test_user_created_dashboards_page_no_dashboards(self, app, mock_is_metabase_sso_user, mock_check_access, monkeypatch):
+        """Test user created dashboards page when no dashboards found"""
+        user = factories.Sysadmin()
+
+        def fake_get_action(name):
+            if name == 'metabase_user_created_dashboards_list':
+                def dashboards_list(context, data_dict):
+                    return []
+                return dashboards_list
+            if name == 'user_show':
+                def user_show(context, data_dict):
+                    return {'id': user['id'], 'name': user['name'], 'email': user.get('email')}
+                return user_show
+            return toolkit.get_action(name)
+
+        monkeypatch.setattr('ckanext.in_app_reporting.blueprint.tk.get_action', fake_get_action)
+
+        url = url_for('metabase.user_created_dashboards_page')
+        env = {"REMOTE_USER": user['name'].encode('ascii')}
+
+        response = app.get(url, extra_environ=env)
+
+        assert response.status_code == 200
+        assert 'You have not created any dashboards yet' in response.body
+
+    def test_user_created_dashboards_page_not_sso_user(self, app, mock_check_access, monkeypatch):
+        """Test user created dashboards page when user is not SSO user"""
+        user = factories.Sysadmin()
+
+        monkeypatch.setattr('ckanext.in_app_reporting.utils.is_metabase_sso_user', lambda u: False)
+
+        url = url_for('metabase.user_created_dashboards_page')
+        env = {"REMOTE_USER": user['name'].encode('ascii')}
+
+        response = app.get(url, extra_environ=env, expect_errors=True)
+
+        assert response.status_code == 404

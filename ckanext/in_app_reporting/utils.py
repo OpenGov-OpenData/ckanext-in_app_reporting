@@ -439,7 +439,7 @@ def get_metabase_user_created_cards(user_email: str) -> list:
             if not full_item:
                 return None
 
-            # Check if the creator matches the user's email (case-insensitive)
+            # Check if the creator matches the user's email
             creator = full_item.get('creator')
             if not creator:
                 return None
@@ -576,12 +576,12 @@ def get_metabase_user_created_dashboards(user_email: str) -> list:
         return []
 
     # Look up the user ID by email to avoid fetching user details for each dashboard
-    user_id = None
+    metabase_user_id = None
     user_query_result = metabase_get_request(
         f'{METABASE_SITE_URL}/api/user?query={user_email}')
     if user_query_result and len(user_query_result.get('data', [])) > 0:
         # Get the first matching user
-        user_id = user_query_result['data'][0].get('id')
+        metabase_user_id = user_query_result['data'][0].get('id')
 
     max_results = 5
     page_size = 30  # Number of dashboards to fetch per page
@@ -600,10 +600,10 @@ def get_metabase_user_created_dashboards(user_email: str) -> list:
             creator_id = full_item.get('creator_id')
 
             # Compare creator_id with the user_id we looked up
-            if not creator_id or not user_id:
+            if not creator_id or not metabase_user_id:
                 return None
 
-            if creator_id == user_id:
+            if creator_id == metabase_user_id:
                 return {
                     'id': full_item.get('id'),
                     'name': full_item.get('name'),
