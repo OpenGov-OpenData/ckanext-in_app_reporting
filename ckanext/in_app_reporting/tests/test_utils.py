@@ -116,6 +116,87 @@ class TestUserValidation:
         assert result is False
 
 
+class TestExtractNativeSql:
+    """Test _extract_native_sql_from_dataset_query helper function"""
+
+    def test_extract_native_sql_old_format(self):
+        """Test extraction from old format (native.query)"""
+        dataset_query = {
+            'native': {
+                'query': 'SELECT * FROM "test-resource-id"'
+            }
+        }
+        result = utils._extract_native_sql_from_dataset_query(dataset_query)
+        assert result == 'SELECT * FROM "test-resource-id"'
+
+    def test_extract_native_sql_new_mbql_format(self):
+        """Test extraction from new MBQL format (stages[].native)"""
+        dataset_query = {
+            'lib/type': 'mbql/query',
+            'database': 60,
+            'stages': [
+                {
+                    'lib/type': 'mbql.stage/native',
+                    'native': 'SELECT * FROM "bee42093-2c03-49f3-b185-200e745ec892" WHERE "Year" < \'2026\''
+                }
+            ]
+        }
+        result = utils._extract_native_sql_from_dataset_query(dataset_query)
+        assert result == 'SELECT * FROM "bee42093-2c03-49f3-b185-200e745ec892" WHERE "Year" < \'2026\''
+
+    def test_extract_native_sql_new_format_multiple_stages(self):
+        """Test extraction from new format with multiple stages (should use first native stage)"""
+        dataset_query = {
+            'lib/type': 'mbql/query',
+            'database': 60,
+            'stages': [
+                {
+                    'lib/type': 'mbql.stage/native',
+                    'native': 'SELECT * FROM "resource-123"'
+                },
+                {
+                    'lib/type': 'mbql.stage/$limit',
+                    'limit': 100
+                }
+            ]
+        }
+        result = utils._extract_native_sql_from_dataset_query(dataset_query)
+        assert result == 'SELECT * FROM "resource-123"'
+
+    def test_extract_native_sql_empty_dataset_query(self):
+        """Test extraction with empty dataset_query"""
+        result = utils._extract_native_sql_from_dataset_query({})
+        assert result == ''
+
+    def test_extract_native_sql_none(self):
+        """Test extraction with None"""
+        result = utils._extract_native_sql_from_dataset_query(None)
+        assert result == ''
+
+    def test_extract_native_sql_no_native_content(self):
+        """Test extraction when no native SQL is present"""
+        dataset_query = {
+            'lib/type': 'mbql/query',
+            'database': 60,
+            'stages': [
+                {
+                    'lib/type': 'mbql.stage/$limit',
+                    'limit': 100
+                }
+            ]
+        }
+        result = utils._extract_native_sql_from_dataset_query(dataset_query)
+        assert result == ''
+
+    def test_extract_native_sql_old_format_native_as_string(self):
+        """Test extraction when native is a string (edge case)"""
+        dataset_query = {
+            'native': 'SELECT * FROM "test"'
+        }
+        result = utils._extract_native_sql_from_dataset_query(dataset_query)
+        assert result == 'SELECT * FROM "test"'
+
+
 class TestMetabaseApiRequests:
     """Test Metabase API request functions"""
 
@@ -485,6 +566,127 @@ class TestMetabaseHelpers:
             {'id': 1, 'name': 'Resource 1', 'type': 'question', 'updated_at': '2025-08-01T18:20:49.005658Z'}
         ]
 
+    @mock.patch('ckanext.in_app_reporting.utils.metabase_get_request')
+    def test_get_metabase_sql_questions_new_mbql_format(self, mock_get_request, app):
+        """Test get_metabase_sql_questions with new MBQL format (stages with native SQL)"""
+        mock_get_request.return_value = [
+            {
+                'id': 1,
+                'name': 'MBQL Card 1',
+                'type': 'question',
+                'updated_at': '2025-08-01T18:20:49.005658Z',
+                'collection_id': 1,
+                'table_id': None,
+                'dataset_query': {
+                    'lib/type': 'mbql/query',
+                    'database': 60,
+                    'stages': [
+                        {
+                            'lib/type': 'mbql.stage/native',
+                            'native': 'SELECT * FROM "bee42093-2c03-49f3-b185-200e745ec892" WHERE "Year" < \'2026\''
+                        }
+                    ]
+                }
+            },
+            {
+                'id': 2,
+                'name': 'MBQL Card 2',
+                'type': 'question',
+                'updated_at': '2025-08-02T18:20:49.005658Z',
+                'collection_id': 1,
+                'table_id': None,
+                'dataset_query': {
+                    'lib/type': 'mbql/query',
+                    'database': 60,
+                    'stages': [
+                        {
+                            'lib/type': 'mbql.stage/native',
+                            'native': 'SELECT * FROM "different-resource-id" WHERE status = "active"'
+                        }
+                    ]
+                }
+            }
+        ]
+        
+        with app.flask_app.app_context():
+            with mock.patch('ckanext.in_app_reporting.utils.METABASE_DB_ID', '4'), \
+                 mock.patch('ckanext.in_app_reporting.utils.METABASE_SITE_URL', 'https://example.com'), \
+                 mock.patch('ckanext.in_app_reporting.utils.collection_ids', ['1']), \
+                 mock.patch('ckan.plugins.toolkit.get_action') as mock_get_action:
+                
+                mock_get_action.return_value.side_effect = toolkit.ObjectNotFound()
+                
+                # Set user in flask.g
+                import ckan.plugins.toolkit as tk
+                user = factories.User()
+                tk.g.user = user['name']
+                tk.g.userobj = model.User.get(user['id'])
+                
+                result = utils.get_metabase_sql_questions('bee42093-2c03-49f3-b185-200e745ec892')
+        
+        mock_get_request.assert_called_once_with('https://example.com/api/card?f=database&model_id=4')
+        assert len(result) == 1
+        assert result[0]['id'] == 1
+        assert result[0]['name'] == 'MBQL Card 1'
+
+    @mock.patch('ckanext.in_app_reporting.utils.metabase_get_request')
+    def test_get_metabase_sql_questions_both_formats(self, mock_get_request, app):
+        """Test get_metabase_sql_questions handles both old and new formats"""
+        mock_get_request.return_value = [
+            {
+                'id': 1,
+                'name': 'Old Format Card',
+                'type': 'question',
+                'updated_at': '2025-08-01T18:20:49.005658Z',
+                'collection_id': 1,
+                'table_id': None,
+                'dataset_query': {
+                    'native': {
+                        'query': 'SELECT * FROM "test-resource-id"'
+                    }
+                }
+            },
+            {
+                'id': 2,
+                'name': 'New Format Card',
+                'type': 'question',
+                'updated_at': '2025-08-02T18:20:49.005658Z',
+                'collection_id': 1,
+                'table_id': None,
+                'dataset_query': {
+                    'lib/type': 'mbql/query',
+                    'database': 60,
+                    'stages': [
+                        {
+                            'lib/type': 'mbql.stage/native',
+                            'native': 'SELECT * FROM "test-resource-id" WHERE status = "active"'
+                        }
+                    ]
+                }
+            }
+        ]
+        
+        with app.flask_app.app_context():
+            with mock.patch('ckanext.in_app_reporting.utils.METABASE_DB_ID', '4'), \
+                 mock.patch('ckanext.in_app_reporting.utils.METABASE_SITE_URL', 'https://example.com'), \
+                 mock.patch('ckanext.in_app_reporting.utils.collection_ids', ['1']), \
+                 mock.patch('ckan.plugins.toolkit.get_action') as mock_get_action:
+                
+                mock_get_action.return_value.side_effect = toolkit.ObjectNotFound()
+                
+                # Set user in flask.g
+                import ckan.plugins.toolkit as tk
+                user = factories.User()
+                tk.g.user = user['name']
+                tk.g.userobj = model.User.get(user['id'])
+                
+                result = utils.get_metabase_sql_questions('test-resource-id')
+        
+        mock_get_request.assert_called_once_with('https://example.com/api/card?f=database&model_id=4')
+        assert len(result) == 2
+        assert result[0]['id'] == 2  # Sorted by type, then name
+        assert result[1]['id'] == 1
+
 
 @pytest.mark.usefixtures("with_plugins", "clean_db")
 @pytest.mark.ckan_config("ckan.plugins", "in_app_reporting")
@@ -743,6 +945,72 @@ class TestGetMetabaseChartList:
         assert result[0]['name'] == 'SQL Chart C'
         assert result[1]['id'] == 1
         assert result[1]['name'] == 'SQL Chart A'
+
+    @mock.patch('ckanext.in_app_reporting.utils.metabase_get_request')
+    def test_get_metabase_chart_list_with_new_mbql_format(self, mock_get_request, app):
+        """Test get_metabase_chart_list with new MBQL format (stages with native SQL)"""
+        mock_get_request.return_value = [
+            {
+                'id': 1,
+                'entity_id': 'card-1',
+                'name': 'MBQL Chart A',
+                'type': 'question',
+                'updated_at': '2025-08-01T18:20:49.005658Z',
+                'collection_id': 1,
+                'table_id': None,
+                'dataset_query': {
+                    'lib/type': 'mbql/query',
+                    'database': 60,
+                    'stages': [
+                        {
+                            'lib/type': 'mbql.stage/native',
+                            'native': 'SELECT * FROM "resource-123" WHERE status = "active"'
+                        }
+                    ]
+                }
+            },
+            {
+                'id': 2,
+                'entity_id': 'card-2',
+                'name': 'MBQL Chart B',
+                'type': 'question',
+                'updated_at': '2025-08-02T18:20:49.005658Z',
+                'collection_id': 1,
+                'table_id': None,
+                'dataset_query': {
+                    'lib/type': 'mbql/query',
+                    'database': 60,
+                    'stages': [
+                        {
+                            'lib/type': 'mbql.stage/native',
+                            'native': 'SELECT * FROM "resource-456" WHERE status = "active"'
+                        }
+                    ]
+                }
+            }
+        ]
+
+        with app.flask_app.app_context():
+            with mock.patch('ckanext.in_app_reporting.utils.METABASE_SITE_URL', 'https://example.com'), \
+                 mock.patch('ckanext.in_app_reporting.utils.METABASE_DB_ID', '4'), \
+                 mock.patch('ckanext.in_app_reporting.utils.collection_ids', ['1']), \
+                 mock.patch('ckan.plugins.toolkit.get_action') as mock_get_action:
+                
+                mock_get_action.return_value.side_effect = toolkit.ObjectNotFound()
+                
+                # Set user in flask.g
+                import ckan.plugins.toolkit as tk
+                user = factories.User()
+                tk.g.user = user['name']
+                tk.g.userobj = model.User.get(user['id'])
+                
+                result = utils.get_metabase_chart_list(123, 'resource-123')
+
+        mock_get_request.assert_called_once_with('https://example.com/api/card?f=database&model_id=4')
+        assert len(result) == 1
+        assert result[0]['id'] == 1
+        assert result[0]['name'] == 'MBQL Chart A'
+        assert result[0]['text'] == 'MBQL Chart A'
 
     @mock.patch('ckanext.in_app_reporting.utils.metabase_get_request')
     def test_get_metabase_chart_list_no_api_response(self, mock_get_request):

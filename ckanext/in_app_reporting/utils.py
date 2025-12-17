@@ -279,6 +279,53 @@ def get_metabase_cards_by_table_id(table_id):
     return matching_cards
 
 
+def _extract_native_sql_from_dataset_query(dataset_query: dict) -> str:
+    """
+    Extract native SQL query from Metabase dataset_query, handling both old and new formats.
+    
+    New format (MBQL):
+        dataset_query: {
+            'stages': [
+                {
+                    'lib/type': 'mbql.stage/native',
+                    'native': 'SELECT ...'
+                }
+            ]
+        }
+
+    Old format:
+        dataset_query: {
+            'native': {
+                'query': 'SELECT ...'
+            }
+        }
+
+    Args:
+        dataset_query: The dataset_query dictionary from a Metabase card
+        
+    Returns:
+        The SQL query string, or empty string if not found
+    """
+    if not dataset_query:
+        return ''
+    
+    # Check new format first (stages with native SQL)
+    stages = dataset_query.get('stages', [])
+    for stage in stages:
+        native_sql = stage.get('native', '')
+        if native_sql and isinstance(native_sql, str):
+            return native_sql
+    
+    # Fall back to old format (native.query)
+    native = dataset_query.get('native', {})
+    if isinstance(native, dict):
+        return native.get('query', '')
+    elif isinstance(native, str):
+        return native
+    
+    return ''
+
+
 def get_metabase_sql_questions(resource_id):
     """
     Get Metabase SQL questions that reference a specific resource ID.
@@ -303,7 +350,9 @@ def get_metabase_sql_questions(resource_id):
         return matching_cards
     for card in card_results:
         if str(card.get('collection_id')) in metabase_mapping['collection_ids'] and not card.get('table_id'):
-            if resource_id in card.get('dataset_query', {}).get('native',{}).get('query', ''):
+            dataset_query = card.get('dataset_query', {})
+            native_sql = _extract_native_sql_from_dataset_query(dataset_query)
+            if resource_id in native_sql:
                 matching_cards.append({
                     'id': card.get('id'),
                     'name': card.get('name'),
@@ -382,15 +431,18 @@ def get_metabase_chart_list(table_id, resource_id):
                     'updated_at': card.get('updated_at'),
                     'text': card.get('name')
                 })
-            elif not card.get('table_id') and resource_id in card.get('dataset_query', {}).get('native',{}).get('query', ''):
-                matching_cards.append({
-                    'id': card.get('id'),
-                    'entity_id': card.get('entity_id'),
-                    'name': card.get('name'),
-                    'type': card.get('type'),
-                    'updated_at': card.get('updated_at'),
-                    'text': card.get('name')
-                })
+            elif not card.get('table_id'):
+                dataset_query = card.get('dataset_query', {})
+                native_sql = _extract_native_sql_from_dataset_query(dataset_query)
+                if resource_id in native_sql:
+                    matching_cards.append({
+                        'id': card.get('id'),
+                        'entity_id': card.get('entity_id'),
+                        'name': card.get('name'),
+                        'type': card.get('type'),
+                        'updated_at': card.get('updated_at'),
+                        'text': card.get('name')
+                    })
     matching_cards.sort(key=lambda card: (card['updated_at']), reverse=True)
     return matching_cards
 
