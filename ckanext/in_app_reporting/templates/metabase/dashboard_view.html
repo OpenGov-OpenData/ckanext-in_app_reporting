@@ -6,10 +6,11 @@
 {% if entity_id %}
     {% set iframeUrl = h.get_metabase_iframe_url('dashboard', entity_id, bordered, titled, downloads) %}
     <iframe
+        title = "Insights Dashboard Viewer"
         src="{{iframeUrl}}"
         frameborder="0"
         width="100%"
-        height="800px"
+        height="900px"
         allowtransparency
     ></iframe>
 {% endif %}
