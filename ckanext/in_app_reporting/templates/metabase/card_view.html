@@ -6,6 +6,7 @@
 {% if entity_id %}
     {% set iframeUrl = h.get_metabase_iframe_url('question', entity_id, bordered, titled, false) %}
     <iframe
+        title = "Insights Chart Viewer"
         src="{{iframeUrl}}"
         frameborder="0"
         width="100%"
