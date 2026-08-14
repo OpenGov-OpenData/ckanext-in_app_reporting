@@ -83,10 +83,11 @@ $(document).ready(function () {
         var cardId = globalThis.cardId;
         if (cardId !== null) {
             event.preventDefault();
+            var resourceId = $('#metabase-resource-id').val();
             $.ajax({
                 method: 'POST',
                 url: '/api/action/metabase_card_publish',
-                data: JSON.stringify({ 'id': cardId }),
+                data: JSON.stringify({ 'id': cardId, 'resource_id': resourceId }),
                 contentType: 'application/json',
                 success: function (response) {
                     $form.submit();

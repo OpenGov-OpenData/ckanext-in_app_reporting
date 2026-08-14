@@ -75,10 +75,11 @@ $(document).ready(function () {
         var dashboardId = globalThis.dashboardId;
         if (dashboardId !== null) {
             event.preventDefault();
+            var resourceId = $('#metabase-resource-id').val();
             $.ajax({
                 method: 'POST',
                 url: '/api/action/metabase_dashboard_publish',
-                data: JSON.stringify({ 'id': dashboardId, 'enable_params': true }),
+                data: JSON.stringify({ 'id': dashboardId, 'resource_id': resourceId, 'enable_params': true }),
                 contentType: 'application/json',
                 success: function (response) {
                     $form.submit();
