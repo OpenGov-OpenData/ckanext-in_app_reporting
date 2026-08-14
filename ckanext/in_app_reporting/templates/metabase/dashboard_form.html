@@ -6,6 +6,7 @@
 {% set embeddable_dashboards = h.get_metabase_embeddable('dashboard') %}
 
 {% if h.is_metabase_sso_user(g.userobj) %}
+<input type="hidden" id="metabase-resource-id" value="{{ resource.id | default('') }}">
 <div class="row">
   <div class="span12 col-md-12">
     {% set

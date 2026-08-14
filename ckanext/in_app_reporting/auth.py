@@ -47,8 +47,12 @@ def metabase_sso(context, data_dict):
 def metabase_data(context, data_dict):
     user = context.get('user')
     userobj = model.User.get(user)
+    resource_id = data_dict.get('id')
+    check_data = {}
+    if resource_id:
+        check_data['id'] = resource_id
     try:
-        tk.check_access('resource_update', context, data_dict)
+        tk.check_access('resource_update', context, check_data)
     except tk.NotAuthorized:
         return {'success': False,
                 'msg': tk._('User {0} not authorized').format(user)}
@@ -62,9 +66,12 @@ def metabase_data(context, data_dict):
 def metabase_card_publish(context, data_dict):
     user = context.get('user')
     userobj = model.User.get(user)
-
+    resource_id = data_dict.get('resource_id')
+    check_data = {}
+    if resource_id:
+        check_data['id'] = resource_id
     try:
-        tk.check_access('resource_update', context, data_dict)
+        tk.check_access('resource_update', context, check_data)
     except tk.NotAuthorized:
         return {'success': False,
                 'msg': tk._('User {0} not authorized').format(user)}
@@ -78,9 +85,12 @@ def metabase_card_publish(context, data_dict):
 def metabase_dashboard_publish(context, data_dict):
     user = context.get('user')
     userobj = model.User.get(user)
-
+    resource_id = data_dict.get('resource_id')
+    check_data = {}
+    if resource_id:
+        check_data['id'] = resource_id
     try:
-        tk.check_access('resource_update', context, data_dict)
+        tk.check_access('resource_update', context, check_data)
     except tk.NotAuthorized:
         return {'success': False,
                 'msg': tk._('User {0} not authorized').format(user)}
@@ -94,9 +104,12 @@ def metabase_dashboard_publish(context, data_dict):
 def metabase_model_create(context, data_dict):
     user = context.get('user')
     userobj = model.User.get(user)
-
+    resource_id = data_dict.get('resource_id')
+    check_data = {}
+    if resource_id:
+        check_data['id'] = resource_id
     try:
-        tk.check_access('resource_update', context, data_dict)
+        tk.check_access('resource_update', context, check_data)
     except tk.NotAuthorized:
         return {'success': False,
                 'msg': tk._('User {0} not authorized to create Metabase model').format(user)}
